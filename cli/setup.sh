@@ -3,7 +3,7 @@
 # Initializes the template, prompts for git identity, and runs home-manager switch.
 set -euo pipefail
 
-SETTINGS_DIR="$HOME/settings"
+SETTINGS_DIR="$HOME/workspace/settings"
 FLAKE_REF="github:hinriksnaer/torched-devcontainer"
 
 # ── Check if already initialized ────────────────────────

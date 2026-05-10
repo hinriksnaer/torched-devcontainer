@@ -96,7 +96,7 @@
          Run: nix run github:hinriksnaer/torched-devcontainer#setup
 
         To build PyTorch: nixtorch build pytorch
-        To update:        cd ~/settings && nix flake update && home-manager switch -b backup --flake .#default
+        To update:        torched update
       '';
     };
   };

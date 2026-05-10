@@ -18,7 +18,7 @@
 #   oc exec -it deployment/<username>-dev -- zsh
 #
 # Home-manager runs automatically on pod startup.
-# To customize: vim ~/settings/settings.nix && torched apply
+# To customize: vim ~/workspace/settings/settings.nix && torched apply
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -106,15 +106,15 @@ spec:
               . /root/.nix-profile/etc/profile.d/nix.sh 2>/dev/null || true
 
               # Init settings template on first boot
-              if [ ! -f ~/settings/flake.nix ]; then
-                mkdir -p ~/settings
-                cd ~/settings
+              if [ ! -f ~/workspace/settings/flake.nix ]; then
+                mkdir -p ~/workspace/settings
+                cd ~/workspace/settings
                 nix flake init -t github:hinriksnaer/torched-devcontainer
               fi
 
               # Apply home-manager config (packages cached on /nix PVC after first run)
               echo ":: applying home-manager config..."
-              nix run home-manager/master -- switch -b backup --flake ~/settings#default 2>&1 || true
+              nix run home-manager/master -- switch -b backup --flake ~/workspace/settings#default 2>&1 || true
 
               # Pre-approve direnv workspace .envrc (allow list is ephemeral)
               if command -v direnv >/dev/null 2>&1; then

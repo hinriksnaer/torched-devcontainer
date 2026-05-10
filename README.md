@@ -23,7 +23,7 @@ Home-manager runs automatically on pod startup. The environment is ready
 to use immediately. To customize, edit your settings and apply:
 
 ```bash
-vim ~/settings/settings.nix   # set git name/email, toggle tools
+vim ~/workspace/settings/settings.nix   # set git name/email, toggle tools
 torched apply
 ```
 
@@ -72,7 +72,7 @@ nixtorch clean                  # remove all repos + shared venv
 
 ## Settings reference
 
-All settings live in `~/settings/settings.nix`. Here are all available options
+All settings live in `~/workspace/settings/settings.nix`. Here are all available options
 with their defaults:
 
 ```nix
@@ -152,7 +152,7 @@ with their defaults:
 Edit settings and re-apply:
 
 ```bash
-vim ~/settings/settings.nix
+vim ~/workspace/settings/settings.nix
 torched apply
 ```
 

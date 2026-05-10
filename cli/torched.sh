@@ -6,7 +6,7 @@
 #   status       Show environment status
 #   help         Show this help
 
-SETTINGS_DIR="${SETTINGS_DIR:-$HOME/settings}"
+SETTINGS_DIR="${SETTINGS_DIR:-$HOME/workspace/settings}"
 
 case "${1:-apply}" in
     apply)
