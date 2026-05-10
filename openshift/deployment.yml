@@ -114,9 +114,9 @@ spec:
           image: 'quay.io/rh-ee-hgudmund/torched-devcontainer:latest'
           env:
             - name: HM_PROFILE
-              value: "default"
+              value: "<hm_profile>"
             - name: SETTINGS_REPO
-              value: ""
+              value: "<settings_repo>"
           command:
             - /bin/bash
             - '-c'
