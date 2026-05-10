@@ -7,6 +7,7 @@
 #   - Secret:  <username>-git-ssh-key    (ssh-privatekey, ssh-publickey, known_hosts)
 #   - Secret:  <username>-gcloud-config  (application_default_credentials.json)
 #   - PVC:     pytorch-ibmc-storage-<username>
+#   - PVC:     nix-store-<username>      (persistent Nix store)
 #   - Secret:  <username>-pull-secret    (registry pull credentials)
 #
 # Deploy:
@@ -60,22 +61,31 @@ spec:
           persistentVolumeClaim:
             claimName: pytorch-ibmc-storage-<username>
 
+        # Persistent Nix store (survives pod restarts, avoids re-fetching packages)
+        - name: nix-store
+          persistentVolumeClaim:
+            claimName: nix-store-<username>
+
         # Shared memory for PyTorch DataLoader workers
         - name: dshm
           emptyDir:
             medium: Memory
 
       initContainers:
-        # Copy base image /root to PVC on first boot
+        # Seed /root and /nix to PVCs on first boot
         - name: init-home
           image: 'quay.io/rh-ee-hgudmund/torched-devcontainer:latest'
           command:
             - /bin/bash
             - '-c'
             - |
-              if [ ! -f /mnt/data/.bashrc ]; then
+              if [ ! -f /mnt/home/.bashrc ]; then
                 echo "First boot -- initializing persistent home..."
-                cp -a /root/. /mnt/data/
+                cp -a /root/. /mnt/home/
+              fi
+              if [ ! -d /mnt/nix/store ]; then
+                echo "First boot -- seeding Nix store..."
+                cp -a /nix/. /mnt/nix/
               fi
           resources:
             limits:
@@ -86,7 +96,9 @@ spec:
               memory: 512Mi
           volumeMounts:
             - name: home-data
-              mountPath: /mnt/data
+              mountPath: /mnt/home
+            - name: nix-store
+              mountPath: /mnt/nix
 
       containers:
         - name: dev
@@ -120,6 +132,9 @@ spec:
             - name: gcloud-config
               mountPath: /root/.config/gcloud
               readOnly: true
+            # Persistent Nix store
+            - name: nix-store
+              mountPath: /nix
             # Shared memory for DataLoader
             - name: dshm
               mountPath: /dev/shm
