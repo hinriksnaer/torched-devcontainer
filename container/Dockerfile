@@ -29,6 +29,7 @@ RUN dnf install -y \
 # authorized_keys is read from a writable path since /root/.ssh is a read-only K8s secret mount
 RUN ssh-keygen -A \
     && sed -i 's/^#PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config \
+    && sed -i 's/^UsePAM yes/UsePAM no/' /etc/ssh/sshd_config \
     && echo 'AuthorizedKeysFile /root/.ssh-authorized/authorized_keys' >> /etc/ssh/sshd_config \
     && mkdir -p /root/.ssh-authorized
 

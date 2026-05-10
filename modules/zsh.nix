@@ -38,9 +38,15 @@ in {
         fi
       '';
 
-      initContent = lib.mkOrder 600 ''
-        fast-theme base16 >/dev/null 2>&1 || true
-      '';
+      initContent = lib.mkMerge [
+        # Disable mouse tracking (leaks escape sequences via oc exec)
+        (lib.mkOrder 100 ''
+          printf '\e[?1000l\e[?1002l\e[?1003l' 2>/dev/null
+        '')
+        (lib.mkOrder 600 ''
+          fast-theme base16 >/dev/null 2>&1 || true
+        '')
+      ];
 
       history = {
         size = 10000;
@@ -69,7 +75,7 @@ in {
     programs.fzf = {
       enable = true;
       defaultCommand = "fd --type f --hidden --follow --exclude .git";
-      defaultOptions = ["--height 40%" "--border"];
+      defaultOptions = ["--height 40%" "--border" "--no-mouse"];
     };
 
     # fd (used by fzf)
