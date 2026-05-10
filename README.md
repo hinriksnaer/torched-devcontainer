@@ -8,15 +8,16 @@ and a nixtorch devShell for CUDA/PyTorch development.
 
 ## Quick start
 
-SSH into your pod and run:
+Connect to your pod and run:
 
 ```bash
-nix run github:hinriksnaer/torched-devcontainer#setup
+vim ~/settings/settings.nix   # set git name/email
+nix run home-manager/master -- switch --flake ~/settings#default
 ```
 
-This creates `~/settings`, prompts for your git identity, and applies
-the home-manager configuration. Once done, `cd ~/workspace` to enter
-the nixtorch devShell.
+The `~/settings` directory with the template is auto-created on pod startup.
+After the first switch, `home-manager` is on PATH and zsh becomes the
+default shell on your next session.
 
 ## Build PyTorch
 
@@ -64,13 +65,13 @@ cd ~/settings && nix flake update && home-manager switch --flake .#default
 ### Prerequisites
 
 - Namespace with SSH key and gcloud secrets already configured
-- Home PVC (`pytorch-ibmc-storage-<username>`) already exists
+- Nix store PVC created (see below)
 
 ### Deploy
 
 ```bash
 cd openshift
-./create-pvc.sh <username>    # creates nix-store PVC
+./create-pvc.sh <username>    # creates nix-store PVC (nfs-rwx)
 ./deploy.sh <username>        # applies deployment YAML
 oc scale deployment <username>-dev -n <username> --replicas=1
 ```
