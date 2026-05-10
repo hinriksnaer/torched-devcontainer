@@ -17,7 +17,7 @@
 # Connect:
 #   oc exec -it deployment/<username>-dev -- zsh
 #
-# Home-manager runs automatically on pod startup.
+# Pod is fully configured when it reaches Running state.
 # To customize: vim ~/workspace/settings/settings.nix && torched apply
 kind: Deployment
 apiVersion: apps/v1
@@ -70,7 +70,7 @@ spec:
             medium: Memory
 
       initContainers:
-        # Seed /nix to PVC on first boot
+        # Stage 1: Seed /nix to PVC on first boot
         - name: init-nix
           image: 'quay.io/rh-ee-hgudmund/torched-devcontainer:latest'
           command:
@@ -78,7 +78,7 @@ spec:
             - '-c'
             - |
               if [ ! -d /mnt/nix/store ]; then
-                echo "First boot -- seeding Nix store..."
+                echo ":: seeding Nix store to PVC..."
                 cp -a /nix/. /mnt/nix/
               fi
           resources:
@@ -92,44 +92,30 @@ spec:
             - name: nix-store
               mountPath: /mnt/nix
 
-      containers:
-        - name: dev
+        # Stage 2: Clone/pull settings + home-manager switch (caches packages to /nix PVC)
+        - name: init-config
           image: 'quay.io/rh-ee-hgudmund/torched-devcontainer:latest'
-          imagePullPolicy: Always
-          stdin: true
-          tty: true
           env:
-            # Home-manager profile name (default: "default")
-            # Custom repos can use their own profile, e.g. "root@container"
             - name: HM_PROFILE
               value: "default"
-            # Git repo URL for settings (default: empty = use built-in template)
-            # Set to a git URL to use a custom config repo, e.g. kernix
             - name: SETTINGS_REPO
               value: ""
           command:
             - /bin/bash
             - '-c'
             - |
-              # Source Nix
               . /root/.nix-profile/etc/profile.d/nix.sh 2>/dev/null || true
 
-              # Persist env vars for SSH sessions (dropbear doesn't forward container env)
-              printf 'export HM_PROFILE="%s"\nexport SETTINGS_REPO="%s"\nexport SETTINGS_DIR="$HOME/workspace/settings"\n' \
-                "${HM_PROFILE:-default}" "${SETTINGS_REPO}" > /etc/profile.d/torched.sh
-
-              # Start SSH immediately (before HM switch so users can connect early)
+              # Set up SSH keys for git clone (read-only mount → writable ~/.ssh)
               mkdir -p /root/.ssh
               if [ -f /root/.ssh-keys/id_ed25519 ]; then
                 cp /root/.ssh-keys/id_ed25519 /root/.ssh/id_ed25519
-                cp /root/.ssh-keys/id_ed25519.pub /root/.ssh/authorized_keys
                 cp /root/.ssh-keys/known_hosts /root/.ssh/known_hosts 2>/dev/null
                 chmod 700 /root/.ssh
-                chmod 600 /root/.ssh/id_ed25519 /root/.ssh/authorized_keys
+                chmod 600 /root/.ssh/id_ed25519
               fi
-              /usr/sbin/dropbear -R -E -p 22
 
-              # Init settings: clone custom repo or use built-in template
+              # Clone/pull settings
               if [ -n "$SETTINGS_REPO" ]; then
                 if [ ! -d ~/workspace/settings ]; then
                   echo ":: cloning custom settings repo..."
@@ -144,20 +130,78 @@ spec:
                 fi
               else
                 if [ ! -f ~/workspace/settings/flake.nix ]; then
+                  echo ":: initializing settings from template..."
                   mkdir -p ~/workspace/settings
                   cd ~/workspace/settings
                   nix flake init -t github:hinriksnaer/torched-devcontainer
                 fi
               fi
 
-              # Apply home-manager config (packages cached on /nix PVC after first run)
+              # Home-manager switch: downloads and caches all packages on /nix PVC
               echo ":: applying home-manager config (profile: ${HM_PROFILE:-default})..."
-              nix run home-manager/master -- switch -b backup --flake "~/workspace/settings#${HM_PROFILE:-default}" 2>&1 || true
+              nix run home-manager/master -- switch -b backup \
+                --flake "/root/workspace/settings#${HM_PROFILE:-default}"
+          resources:
+            limits:
+              cpu: '4'
+              memory: 8Gi
+            requests:
+              cpu: '4'
+              memory: 8Gi
+          volumeMounts:
+            - name: nix-store
+              mountPath: /nix
+            - name: workspace
+              mountPath: /root/workspace
+            - name: ssh-key
+              mountPath: /root/.ssh-keys
+              readOnly: true
+            - name: gcloud-config
+              mountPath: /root/.config/gcloud
+              readOnly: true
 
-              # Pre-approve direnv workspace .envrc (allow list is ephemeral)
+      containers:
+        - name: dev
+          image: 'quay.io/rh-ee-hgudmund/torched-devcontainer:latest'
+          imagePullPolicy: Always
+          stdin: true
+          tty: true
+          env:
+            - name: HM_PROFILE
+              value: "default"
+            - name: SETTINGS_REPO
+              value: ""
+          command:
+            - /bin/bash
+            - '-c'
+            - |
+              # Source Nix
+              . /root/.nix-profile/etc/profile.d/nix.sh 2>/dev/null || true
+
+              # Persist env vars for SSH sessions (dropbear doesn't forward container env)
+              printf 'export HM_PROFILE="%s"\nexport SETTINGS_REPO="%s"\nexport SETTINGS_DIR="$HOME/workspace/settings"\n' \
+                "${HM_PROFILE:-default}" "${SETTINGS_REPO}" > /etc/profile.d/torched.sh
+
+              # Re-apply home-manager (instant -- packages cached on /nix PVC, just creates symlinks)
+              echo ":: applying home-manager config..."
+              nix run home-manager/master -- switch -b backup \
+                --flake "/root/workspace/settings#${HM_PROFILE:-default}" 2>&1 || true
+
+              # Approve direnv workspace .envrc (allow list is ephemeral)
               if command -v direnv >/dev/null 2>&1; then
                 direnv allow ~/workspace 2>/dev/null
               fi
+
+              # Set up SSH keys and start dropbear
+              mkdir -p /root/.ssh
+              if [ -f /root/.ssh-keys/id_ed25519 ]; then
+                cp /root/.ssh-keys/id_ed25519 /root/.ssh/id_ed25519
+                cp /root/.ssh-keys/id_ed25519.pub /root/.ssh/authorized_keys
+                cp /root/.ssh-keys/known_hosts /root/.ssh/known_hosts 2>/dev/null
+                chmod 700 /root/.ssh
+                chmod 600 /root/.ssh/id_ed25519 /root/.ssh/authorized_keys
+              fi
+              /usr/sbin/dropbear -R -E -p 22
 
               exec /bin/bash
           ports:
@@ -175,21 +219,16 @@ spec:
               memory: 64Gi
               nvidia.com/mig-2g.35gb: '1'
           volumeMounts:
-            # SSH keys (read-only, mounted to staging path; startup copies to /root/.ssh)
             - name: ssh-key
               mountPath: /root/.ssh-keys
               readOnly: true
-            # Google Cloud credentials (read-only, from K8s secret)
             - name: gcloud-config
               mountPath: /root/.config/gcloud
               readOnly: true
-            # Persistent Nix store (block storage, fast IOPS)
             - name: nix-store
               mountPath: /nix
-            # Persistent workspace (block storage, fast IOPS)
             - name: workspace
               mountPath: /root/workspace
-            # Shared memory for DataLoader
             - name: dshm
               mountPath: /dev/shm
           terminationMessagePath: /dev/termination-log
