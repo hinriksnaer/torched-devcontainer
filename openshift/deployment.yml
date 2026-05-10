@@ -87,29 +87,7 @@ spec:
             - name: nix-store
               mountPath: /mnt/nix
 
-        # Stage 2: Seed /root PVC on first boot
-        - name: init-home
-          image: 'quay.io/rh-ee-hgudmund/torched-devcontainer:latest'
-          command:
-            - /bin/bash
-            - '-c'
-            - |
-              if [ ! -f /mnt/home/.bashrc ]; then
-                echo ":: seeding home directory..."
-                cp -a /root/. /mnt/home/
-              fi
-          resources:
-            limits:
-              cpu: 500m
-              memory: 512Mi
-            requests:
-              cpu: 500m
-              memory: 512Mi
-          volumeMounts:
-            - name: home
-              mountPath: /mnt/home
-
-        # Stage 3: Clone/pull settings + home-manager switch
+        # Stage 2: Clone/pull settings + home-manager switch
         - name: init-config
           image: 'quay.io/rh-ee-hgudmund/torched-devcontainer:latest'
           env:
@@ -121,6 +99,11 @@ spec:
             - /bin/bash
             - '-c'
             - |
+              # Ensure nix config exists on persistent /root
+              mkdir -p /root/.config/nix
+              [ ! -f /root/.config/nix/nix.conf ] && \
+                printf 'experimental-features = nix-command flakes\nbuild-users-group =\n' > /root/.config/nix/nix.conf
+
               . /root/.nix-profile/etc/profile.d/nix.sh 2>/dev/null || true
 
               # SSH keys for git clone
