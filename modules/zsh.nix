@@ -1,7 +1,8 @@
-# Zsh -- minimal shell setup for containers.
-# Enables zsh, sources Nix paths, sets sane history defaults.
-# No plugins, no aliases -- layer those on top via your own HM config.
+# Zsh -- shell setup for containers.
+# Includes starship prompt, fzf, autosuggestions, history search,
+# syntax highlighting, and lsd. No vi-mode or aliases -- layer those on top.
 {
+  pkgs,
   config,
   lib,
   ...
@@ -16,6 +17,16 @@ in {
     programs.zsh = {
       enable = true;
       enableCompletion = true;
+      autosuggestion.enable = true;
+      autosuggestion.strategy = ["history" "completion"];
+      historySubstringSearch.enable = true;
+      plugins = [
+        {
+          name = "fast-syntax-highlighting";
+          src = pkgs.zsh-fast-syntax-highlighting;
+          file = "share/zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh";
+        }
+      ];
 
       # Nix profile paths for non-NixOS hosts (containers)
       envExtra = ''
@@ -27,6 +38,10 @@ in {
         fi
       '';
 
+      initContent = lib.mkOrder 600 ''
+        fast-theme base16 >/dev/null 2>&1 || true
+      '';
+
       history = {
         size = 10000;
         save = 10000;
@@ -36,6 +51,32 @@ in {
         share = true;
       };
     };
+
+    # Starship prompt
+    programs.starship = {
+      enable = true;
+      settings = {
+        hostname.disabled = true;
+        username.disabled = true;
+        character = {
+          success_symbol = "[>](bold green)";
+          error_symbol = "[>](bold red)";
+        };
+      };
+    };
+
+    # Fuzzy finder (Ctrl+R for history, Ctrl+T for files)
+    programs.fzf = {
+      enable = true;
+      defaultCommand = "fd --type f --hidden --follow --exclude .git";
+      defaultOptions = ["--height 40%" "--border"];
+    };
+
+    # fd (used by fzf)
+    programs.fd.enable = true;
+
+    # lsd (modern ls)
+    programs.lsd.enable = true;
 
     # Keep bash functional for non-NixOS hosts that default to it
     programs.bash.enable = true;
