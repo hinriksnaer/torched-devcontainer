@@ -26,7 +26,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: workspace-${USERNAME}
+  name: home-${USERNAME}
   namespace: ${USERNAME}
 spec:
   accessModes: [ReadWriteOnce]

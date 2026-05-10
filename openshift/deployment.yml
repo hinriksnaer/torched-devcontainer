@@ -7,7 +7,7 @@
 #   - Secret:  <username>-git-ssh-key    (ssh-privatekey, ssh-publickey, known_hosts)
 #   - Secret:  <username>-gcloud-config  (application_default_credentials.json)
 #   - PVC:     nix-store-<username>      (block storage, created by create-pvc.sh)
-#   - PVC:     workspace-<username>      (block storage, created by create-pvc.sh)
+#   - PVC:     home-<username>           (block storage, created by create-pvc.sh)
 #
 # Deploy:
 #   ./create-pvc.sh <username>
@@ -35,7 +35,6 @@ spec:
         app: <username>-dev
     spec:
       volumes:
-        # SSH keys for git authentication (mounted from K8s secret)
         - name: ssh-key
           secret:
             secretName: <username>-git-ssh-key
@@ -48,29 +47,25 @@ spec:
                 path: known_hosts
             defaultMode: 0600
 
-        # Google Cloud credentials for Vertex AI authentication
         - name: gcloud-config
           secret:
             secretName: <username>-gcloud-config
             defaultMode: 0600
 
-        # Persistent Nix store on block storage (fast IOPS, WaitForFirstConsumer)
         - name: nix-store
           persistentVolumeClaim:
             claimName: nix-store-<username>
 
-        # Persistent workspace on block storage (fast IOPS, WaitForFirstConsumer)
-        - name: workspace
+        - name: home
           persistentVolumeClaim:
-            claimName: workspace-<username>
+            claimName: home-<username>
 
-        # Shared memory for PyTorch DataLoader workers
         - name: dshm
           emptyDir:
             medium: Memory
 
       initContainers:
-        # Stage 1: Seed /nix to PVC on first boot
+        # Stage 1: Seed /nix PVC on first boot
         - name: init-nix
           image: 'quay.io/rh-ee-hgudmund/torched-devcontainer:latest'
           command:
@@ -78,7 +73,7 @@ spec:
             - '-c'
             - |
               if [ ! -d /mnt/nix/store ]; then
-                echo ":: seeding Nix store to PVC..."
+                echo ":: seeding Nix store..."
                 cp -a /nix/. /mnt/nix/
               fi
           resources:
@@ -92,7 +87,29 @@ spec:
             - name: nix-store
               mountPath: /mnt/nix
 
-        # Stage 2: Clone/pull settings + home-manager switch (caches packages to /nix PVC)
+        # Stage 2: Seed /root PVC on first boot
+        - name: init-home
+          image: 'quay.io/rh-ee-hgudmund/torched-devcontainer:latest'
+          command:
+            - /bin/bash
+            - '-c'
+            - |
+              if [ ! -f /mnt/home/.bashrc ]; then
+                echo ":: seeding home directory..."
+                cp -a /root/. /mnt/home/
+              fi
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: home
+              mountPath: /mnt/home
+
+        # Stage 3: Clone/pull settings + home-manager switch
         - name: init-config
           image: 'quay.io/rh-ee-hgudmund/torched-devcontainer:latest'
           env:
@@ -106,26 +123,23 @@ spec:
             - |
               . /root/.nix-profile/etc/profile.d/nix.sh 2>/dev/null || true
 
-              # Set up SSH keys for git clone (read-only mount → writable ~/.ssh)
+              # SSH keys for git clone
               mkdir -p /root/.ssh
-              if [ -f /root/.ssh-keys/id_ed25519 ]; then
-                cp /root/.ssh-keys/id_ed25519 /root/.ssh/id_ed25519
-                cp /root/.ssh-keys/known_hosts /root/.ssh/known_hosts 2>/dev/null
-                chmod 700 /root/.ssh
-                chmod 600 /root/.ssh/id_ed25519
-              fi
+              cp /root/.ssh-keys/id_ed25519 /root/.ssh/id_ed25519 2>/dev/null
+              cp /root/.ssh-keys/known_hosts /root/.ssh/known_hosts 2>/dev/null
+              chmod 700 /root/.ssh 2>/dev/null; chmod 600 /root/.ssh/* 2>/dev/null
 
               # Clone/pull settings
               if [ -n "$SETTINGS_REPO" ]; then
                 if [ ! -d ~/workspace/settings ]; then
-                  echo ":: cloning custom settings repo..."
+                  echo ":: cloning settings repo..."
                   /usr/bin/git clone "$SETTINGS_REPO" ~/workspace/settings
                 elif [ ! -d ~/workspace/settings/.git ]; then
-                  echo ":: backing up template settings, cloning custom repo..."
+                  echo ":: backing up template, cloning settings repo..."
                   mv ~/workspace/settings ~/workspace/settings.bak
                   /usr/bin/git clone "$SETTINGS_REPO" ~/workspace/settings
                 else
-                  echo ":: updating existing settings repo..."
+                  echo ":: updating settings repo..."
                   /usr/bin/git -C ~/workspace/settings pull --ff-only 2>/dev/null || true
                 fi
               else
@@ -137,10 +151,10 @@ spec:
                 fi
               fi
 
-              # Home-manager switch: downloads and caches all packages on /nix PVC
+              # Home-manager switch (persists to /root PVC)
               echo ":: applying home-manager config (profile: ${HM_PROFILE:-default})..."
               nix run home-manager/master -- switch -b backup \
-                --flake "/root/workspace/settings#${HM_PROFILE:-default}"
+                --flake "/root/workspace/settings#${HM_PROFILE:-default}" || true
           resources:
             limits:
               cpu: '4'
@@ -151,8 +165,8 @@ spec:
           volumeMounts:
             - name: nix-store
               mountPath: /nix
-            - name: workspace
-              mountPath: /root/workspace
+            - name: home
+              mountPath: /root
             - name: ssh-key
               mountPath: /root/.ssh-keys
               readOnly: true
@@ -166,28 +180,13 @@ spec:
           imagePullPolicy: Always
           stdin: true
           tty: true
-          env:
-            - name: HM_PROFILE
-              value: "default"
           command:
             - /bin/bash
             - '-c'
             - |
-              . /root/.nix-profile/etc/profile.d/nix.sh 2>/dev/null || true
-
-              # HM symlinks (packages already cached by init-config)
-              nix run home-manager/master -- switch -b backup \
-                --flake "/root/workspace/settings#${HM_PROFILE:-default}" 2>&1 || true
-              command -v direnv >/dev/null 2>&1 && direnv allow ~/workspace 2>/dev/null
-
-              # SSH
-              mkdir -p /root/.ssh
-              cp /root/.ssh-keys/id_ed25519 /root/.ssh/id_ed25519 2>/dev/null
               cp /root/.ssh-keys/id_ed25519.pub /root/.ssh/authorized_keys 2>/dev/null
-              cp /root/.ssh-keys/known_hosts /root/.ssh/known_hosts 2>/dev/null
-              chmod 700 /root/.ssh 2>/dev/null; chmod 600 /root/.ssh/* 2>/dev/null
+              chmod 600 /root/.ssh/authorized_keys 2>/dev/null
               /usr/sbin/dropbear -R -E -p 22
-
               exec /bin/bash
           ports:
             - containerPort: 22
@@ -204,16 +203,16 @@ spec:
               memory: 64Gi
               nvidia.com/mig-2g.35gb: '1'
           volumeMounts:
+            - name: home
+              mountPath: /root
+            - name: nix-store
+              mountPath: /nix
             - name: ssh-key
               mountPath: /root/.ssh-keys
               readOnly: true
             - name: gcloud-config
               mountPath: /root/.config/gcloud
               readOnly: true
-            - name: nix-store
-              mountPath: /nix
-            - name: workspace
-              mountPath: /root/workspace
             - name: dshm
               mountPath: /dev/shm
           terminationMessagePath: /dev/termination-log
