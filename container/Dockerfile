@@ -13,17 +13,19 @@ FROM ${BASE_IMAGE}
 
 USER root
 
-# Install Nix (single-user mode, no daemon needed in containers)
-RUN curl -L https://nixos.org/nix/install | sh -s -- --no-daemon \
-    && . /root/.nix-profile/etc/profile.d/nix.sh \
-    && nix --version
+# Install Nix and minimal bootstrap tools
+RUN dnf install -y \
+        nix \
+        git \
+        curl \
+    && dnf clean all
 
 # Enable flakes
 RUN mkdir -p /root/.config/nix \
     && echo 'experimental-features = nix-command flakes' > /root/.config/nix/nix.conf
 
 # Ensure Nix is on PATH for non-login shells (oc exec)
-RUN echo '. /root/.nix-profile/etc/profile.d/nix.sh' >> /root/.bashrc
+RUN echo '[ -f /root/.nix-profile/etc/profile.d/nix.sh ] && . /root/.nix-profile/etc/profile.d/nix.sh' >> /root/.bashrc
 
 # Pre-seed SSH known hosts (GitHub, GitLab)
 # Actual SSH keys are mounted as K8s secrets at runtime.
