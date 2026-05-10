@@ -16,13 +16,21 @@ FROM ${BASE_IMAGE}
 
 USER root
 
-# Install Nix, zsh, and minimal bootstrap tools
+# Install Nix, zsh, sshd, and minimal bootstrap tools
 RUN dnf install -y \
         nix \
         git \
         curl \
         zsh \
+        openssh-server \
     && dnf clean all
+
+# Generate SSH host keys and configure sshd
+# authorized_keys is read from a writable path since /root/.ssh is a read-only K8s secret mount
+RUN ssh-keygen -A \
+    && sed -i 's/^#PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config \
+    && echo 'AuthorizedKeysFile /root/.ssh-authorized/authorized_keys' >> /etc/ssh/sshd_config \
+    && mkdir -p /root/.ssh-authorized
 
 # Configure Nix: enable flakes, disable build users (single-user container)
 RUN mkdir -p /root/.config/nix \

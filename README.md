@@ -164,6 +164,29 @@ oc scale deployment <username>-dev -n <username> --replicas=1
 oc exec -it deployment/<username>-dev -n <username> -- zsh
 ```
 
+### SSH access
+
+The container runs sshd on port 22. Use `oc port-forward` to connect:
+
+```bash
+# In a terminal on your laptop:
+oc port-forward deployment/<username>-dev -n <username> 2222:22
+
+# Then SSH in:
+ssh -p 2222 root@localhost
+```
+
+For VS Code Remote-SSH, add to `~/.ssh/config`:
+
+```
+Host openshift-dev
+  HostName localhost
+  Port 2222
+  User root
+```
+
+Then connect to `openshift-dev` in VS Code.
+
 ### Teardown
 
 ```bash
