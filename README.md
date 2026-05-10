@@ -70,6 +70,7 @@ cd ~/settings && nix flake update && home-manager switch --flake .#default
 
 ```bash
 cd openshift
+./create-pvc.sh <username>    # creates Nix store PVC (block storage, one-time)
 ./deploy.sh <username>        # applies deployment YAML
 oc scale deployment <username>-dev -n <username> --replicas=1
 ```
@@ -83,7 +84,7 @@ oc exec -it deployment/<username>-dev -n <username> -- bash
 ### Teardown
 
 ```bash
-./openshift/teardown.sh <username>   # deletes deployment
+./openshift/teardown.sh <username>   # deletes deployment, keeps PVC
 ```
 
 ## Architecture

@@ -6,10 +6,12 @@
 # Prerequisites (create these in your namespace first):
 #   - Secret:  <username>-git-ssh-key    (ssh-privatekey, ssh-publickey, known_hosts)
 #   - Secret:  <username>-gcloud-config  (application_default_credentials.json)
+#   - PVC:     nix-store-<username>      (block storage, created by create-pvc.sh)
 #
 # Deploy:
-#   oc apply -f deployment.yml
-#   oc scale deployment <username>-dev --replicas=1
+#   ./create-pvc.sh <username>
+#   ./deploy.sh <username>
+#   oc scale deployment <username>-dev -n <username> --replicas=1
 #
 # Connect:
 #   oc exec -it deployment/<username>-dev -- bash
@@ -52,10 +54,38 @@ spec:
             secretName: <username>-gcloud-config
             defaultMode: 0600
 
+        # Persistent Nix store on block storage (fast IOPS, WaitForFirstConsumer)
+        - name: nix-store
+          persistentVolumeClaim:
+            claimName: nix-store-<username>
+
         # Shared memory for PyTorch DataLoader workers
         - name: dshm
           emptyDir:
             medium: Memory
+
+      initContainers:
+        # Seed /nix to PVC on first boot
+        - name: init-nix
+          image: 'quay.io/rh-ee-hgudmund/torched-devcontainer:latest'
+          command:
+            - /bin/bash
+            - '-c'
+            - |
+              if [ ! -d /mnt/nix/store ]; then
+                echo "First boot -- seeding Nix store..."
+                cp -a /nix/. /mnt/nix/
+              fi
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: nix-store
+              mountPath: /mnt/nix
 
       containers:
         - name: dev
@@ -94,6 +124,9 @@ spec:
             - name: gcloud-config
               mountPath: /root/.config/gcloud
               readOnly: true
+            # Persistent Nix store (block storage, fast IOPS)
+            - name: nix-store
+              mountPath: /nix
             # Shared memory for DataLoader
             - name: dshm
               mountPath: /dev/shm
