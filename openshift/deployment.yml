@@ -161,6 +161,9 @@ spec:
             # Shared memory for DataLoader
             - name: dshm
               mountPath: /dev/shm
+          securityContext:
+            capabilities:
+              add: ["SYS_CHROOT", "AUDIT_WRITE"]
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
 
