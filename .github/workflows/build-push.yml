@@ -8,6 +8,7 @@ on:
       - 'modules/**'
       - 'lib/**'
       - 'template/**'
+      - 'cli/**'
       - 'flake.nix'
       - 'flake.lock'
       - '.github/workflows/build-push.yml'

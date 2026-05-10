@@ -31,6 +31,7 @@ in {
       CLAUDE_CODE_USE_VERTEX = "1";
       CLOUD_ML_REGION = cfg.region;
       ANTHROPIC_VERTEX_PROJECT_ID = cfg.project;
+      ANTHROPIC_VERTEX_REGION = cfg.region;
       GOOGLE_CLOUD_PROJECT = cfg.project;
       VERTEX_LOCATION = cfg.region;
     };

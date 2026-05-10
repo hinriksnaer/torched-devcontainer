@@ -50,7 +50,7 @@
         repo = "https://github.com/pytorch/helion.git";
         branch = "main";
         torchIndex = "nightly/cu130";
-        backends = ["cuda"]; # add "cute" for CUTLASS support
+        backends = ["cute"]; # CUTLASS support enabled
       };
 
       # Uncomment to enable vLLM:

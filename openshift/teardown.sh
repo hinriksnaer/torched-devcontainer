@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tear down a user's dev environment (keeps PVCs).
+# Tear down a user's dev environment.
 # Usage: ./teardown.sh <username>
 
 set -euo pipefail
