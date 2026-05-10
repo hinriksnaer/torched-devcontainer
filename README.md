@@ -3,14 +3,19 @@
 Nix-based team dev environment for PyTorch containers on OpenShift.
 
 Provides a minimal container image (Fedora + Nix), a one-command bootstrap
-that sets up git, AI coding tools (OpenCode, Claude Code), zsh, and direnv,
-and a nixtorch devShell for CUDA/PyTorch development.
+that sets up git, AI coding tools (OpenCode, Claude Code), zsh with starship
+prompt, and a nixtorch devShell for CUDA/PyTorch development.
 
 ## Quick start
 
-Connect to your pod:
+Connect to your pod via SSH or oc exec:
 
 ```bash
+# Option A: SSH (requires oc port-forward running in another terminal)
+oc port-forward deployment/<username>-dev -n <username> 2222:22
+ssh openshift-dev
+
+# Option B: oc exec
 oc exec -it deployment/<username>-dev -n <username> -- zsh
 ```
 
@@ -31,12 +36,38 @@ torched status   # show installed tools, nix store, flake inputs
 torched help     # usage
 ```
 
-## Build PyTorch
+## Development workflow
+
+When you `cd ~/workspace`, direnv auto-activates the nixtorch devShell which
+provides CUDA 12.9, cuDNN 9.13, GCC 14, Python, cmake, ninja, ccache, and
+the `nixtorch` CLI.
+
+### Build projects
 
 ```bash
-cd ~/workspace
-nixtorch build pytorch
-nixtorch status
+nixtorch build pytorch          # clone + build PyTorch from source
+nixtorch build helion           # clone + install Helion
+nixtorch build pytorch --force  # force rebuild (clear cache)
+```
+
+### Check environment
+
+```bash
+nixtorch status                 # CUDA version, Python, torch, ccache stats
+```
+
+### Update project code
+
+```bash
+nixtorch update pytorch         # pull latest + rebuild
+nixtorch update                 # update nixtorch itself
+```
+
+### Clean up
+
+```bash
+nixtorch clean pytorch          # remove repo + build markers
+nixtorch clean                  # remove all repos + shared venv
 ```
 
 ## Settings reference
@@ -65,10 +96,10 @@ with their defaults:
     opencode = true;    # AI coding assistant (opencode.ai)
     claude-code = true; # Anthropic Claude Code CLI
     direnv = true;      # auto-activate devShell on cd (works with VS Code)
-    zsh = true;         # minimal zsh with completions and history
+    zsh = true;         # zsh with starship, fzf, fd, lsd, syntax highlighting
 
     # Available but disabled by default -- uncomment to enable:
-    # cli-tools = true; # starship prompt, fzf, zoxide, bat, lsd, ripgrep, fd
+    # cli-tools = true; # additional CLI tools (bat, ripgrep, zoxide, etc.)
   };
 
   # ── CUDA / PyTorch development shell ──────────────────
@@ -164,26 +195,29 @@ oc exec -it deployment/<username>-dev -n <username> -- zsh
 
 ### SSH access
 
-The container runs sshd on port 22. Use `oc port-forward` to connect:
+The container runs [dropbear](https://matt.ucc.asn.au/dropbear/dropbear.html)
+(lightweight SSH server) on port 22. Use `oc port-forward` to connect:
 
 ```bash
-# In a terminal on your laptop:
+# In a terminal on your laptop (keep running):
 oc port-forward deployment/<username>-dev -n <username> 2222:22
 
 # Then SSH in:
-ssh -p 2222 root@localhost
+ssh openshift-dev
 ```
 
-For VS Code Remote-SSH, add to `~/.ssh/config`:
+Add to `~/.ssh/config`:
 
 ```
 Host openshift-dev
   HostName localhost
   Port 2222
   User root
+  StrictHostKeyChecking no
+  UserKnownHostsFile /dev/null
 ```
 
-Then connect to `openshift-dev` in VS Code.
+For VS Code: `Cmd+Shift+P` -> "Remote-SSH: Connect to Host" -> `openshift-dev`.
 
 ### Teardown
 
