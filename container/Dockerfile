@@ -27,11 +27,18 @@ RUN dnf install -y \
 
 # Generate SSH host keys and configure sshd
 # authorized_keys is read from a writable path since /root/.ssh is a read-only K8s secret mount
+# Generate SSH host keys and configure sshd for container use:
+# - Key-only root login (no passwords)
+# - No privilege separation (container lacks SYS_CHROOT capability)
+# - authorized_keys from writable path (K8s secret mount is read-only)
 RUN ssh-keygen -A \
-    && sed -i 's/^#PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config \
-    && sed -i 's/^UsePAM yes/UsePAM no/' /etc/ssh/sshd_config \
-    && echo 'AuthorizedKeysFile /root/.ssh-authorized/authorized_keys' >> /etc/ssh/sshd_config \
-    && mkdir -p /root/.ssh-authorized
+    && mkdir -p /root/.ssh-authorized /run/sshd \
+    && cat > /etc/ssh/sshd_config.d/container.conf <<'EOF'
+PermitRootLogin prohibit-password
+AuthorizedKeysFile /root/.ssh-authorized/authorized_keys
+UsePrivilegeSeparation no
+StrictModes no
+EOF
 
 # Configure Nix: enable flakes, disable build users (single-user container)
 RUN mkdir -p /root/.config/nix \
