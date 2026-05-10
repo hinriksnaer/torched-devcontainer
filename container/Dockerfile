@@ -3,8 +3,8 @@
 # CUDA toolkit/cuDNN come from nixtorch (Nix packages); NVIDIA driver libs
 # are injected at runtime by the GPU operator.
 #
-# CI pre-builds the HM config and devShell closures and imports them
-# into the image so home-manager switch and nix develop are instant.
+# Packages are cached on a persistent /nix PVC after the first
+# home-manager switch. No pre-baking needed.
 #
 # Distro-agnostic: switch BASE_IMAGE for Fedora, CentOS Stream, or RHEL.
 #   fedora:41
@@ -38,18 +38,6 @@ RUN chsh -s /bin/zsh root
 # Ensure Nix is on PATH for non-login shells (oc exec)
 RUN echo '[ -f /root/.nix-profile/etc/profile.d/nix.sh ] && . /root/.nix-profile/etc/profile.d/nix.sh' >> /root/.bashrc \
     && echo '[ -f /root/.nix-profile/etc/profile.d/nix.sh ] && . /root/.nix-profile/etc/profile.d/nix.sh' >> /root/.zshrc
-
-# Import pre-built Nix closures (HM config + devShell).
-# The closure.nar is bind-mounted from the build context (built by CI),
-# not copied into image layers. Skipped gracefully for local builds.
-RUN --mount=type=bind,source=.,target=/ctx \
-    if [ -f /ctx/closure.nar ]; then \
-      echo "Importing pre-built Nix closures..." \
-      && nix-store --import < /ctx/closure.nar \
-      && echo "Done."; \
-    else \
-      echo "No closure.nar found -- skipping pre-bake (packages will be fetched at runtime)."; \
-    fi
 
 WORKDIR /root
 CMD ["/bin/bash"]

@@ -49,17 +49,6 @@
       container = ./modules/container.nix;
     };
 
-    # ── Packages ──
-    packages.${system} = {
-      # Pre-baked HM closure (for container image).
-      # Built in CI and imported into the Docker image so
-      # home-manager switch is instant in the pod.
-      container-home = let
-        defaultSettings = import ./template/settings.nix;
-      in
-        (self.lib.mkContainerHome defaultSettings).activationPackage;
-    };
-
     # ── Template ──
     templates.default = {
       path = ./template;
