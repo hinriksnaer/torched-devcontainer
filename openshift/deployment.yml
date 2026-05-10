@@ -114,6 +114,17 @@ spec:
               # Source Nix
               . /root/.nix-profile/etc/profile.d/nix.sh 2>/dev/null || true
 
+              # Start SSH immediately (before HM switch so users can connect early)
+              mkdir -p /root/.ssh
+              if [ -f /root/.ssh-keys/id_ed25519 ]; then
+                cp /root/.ssh-keys/id_ed25519 /root/.ssh/id_ed25519
+                cp /root/.ssh-keys/id_ed25519.pub /root/.ssh/authorized_keys
+                cp /root/.ssh-keys/known_hosts /root/.ssh/known_hosts 2>/dev/null
+                chmod 700 /root/.ssh
+                chmod 600 /root/.ssh/id_ed25519 /root/.ssh/authorized_keys
+              fi
+              /usr/sbin/dropbear -R -E -p 22
+
               # Init settings: clone custom repo or use built-in template
               if [ -n "$SETTINGS_REPO" ]; then
                 if [ ! -d ~/workspace/settings ]; then
@@ -143,18 +154,6 @@ spec:
               if command -v direnv >/dev/null 2>&1; then
                 direnv allow ~/workspace 2>/dev/null
               fi
-
-              # Set up SSH: copy keys from read-only mount to writable /root/.ssh
-              # and start dropbear (lightweight SSH, no SYS_CHROOT needed)
-              mkdir -p /root/.ssh
-              if [ -f /root/.ssh-keys/id_ed25519 ]; then
-                cp /root/.ssh-keys/id_ed25519 /root/.ssh/id_ed25519
-                cp /root/.ssh-keys/id_ed25519.pub /root/.ssh/authorized_keys
-                cp /root/.ssh-keys/known_hosts /root/.ssh/known_hosts 2>/dev/null
-                chmod 700 /root/.ssh
-                chmod 600 /root/.ssh/id_ed25519 /root/.ssh/authorized_keys
-              fi
-              /usr/sbin/dropbear -R -E -p 22
 
               exec /bin/bash
           ports:
