@@ -8,20 +8,29 @@ and a nixtorch devShell for CUDA/PyTorch development.
 
 ## Quick start
 
-Connect to your pod and run:
+Connect to your pod:
 
 ```bash
-vim ~/settings/settings.nix   # set git name/email
-nix run home-manager/master -- switch -b backup --flake ~/settings#default
+oc exec -it deployment/<username>-dev -n <username> -- zsh
 ```
 
 The `~/settings` directory with the template is auto-created on pod startup.
-After the first switch, `home-manager` is on PATH and zsh becomes the
-default shell on your next session. Reconnect to enter zsh:
+Edit your git identity and apply:
 
 ```bash
-exit
-oc exec -it deployment/<username>-dev -n <username> -- zsh
+vim ~/settings/settings.nix
+nix run home-manager/master -- switch -b backup --flake ~/settings#default
+```
+
+After the first apply, the `torched` CLI is available for all future operations.
+
+## CLI
+
+```bash
+torched apply    # apply home-manager config
+torched update   # update flake inputs + apply
+torched status   # show installed tools, nix store, flake inputs
+torched help     # usage
 ```
 
 ## Build PyTorch
@@ -111,11 +120,11 @@ with their defaults:
 
 ## Configuration
 
-Edit and re-apply:
+Edit settings and re-apply:
 
 ```bash
 vim ~/settings/settings.nix
-home-manager switch -b backup --flake ~/settings#default
+torched apply
 ```
 
 ### Disable a tool
@@ -132,14 +141,6 @@ tools = {
 tools = {
   cli-tools = true;
 };
-```
-
-## Update
-
-Pull the latest modules and packages:
-
-```bash
-cd ~/settings && nix flake update && home-manager switch -b backup --flake .#default
 ```
 
 ## OpenShift deployment
@@ -175,6 +176,7 @@ oc exec -it deployment/<username>-dev -n <username> -- zsh
 torched-devcontainer (this repo)
   ├── lib.mkContainerHome    settings.nix -> home-manager config
   ├── lib.mkDevShell         re-exports nixtorch
+  ├── torched CLI            apply / update / status
   └── templates.default      nix flake init scaffold
           │
           ├── nixtorch       CUDA toolkit, PyTorch build env, CLI
