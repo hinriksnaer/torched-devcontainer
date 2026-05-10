@@ -129,14 +129,14 @@ spec:
               if [ -n "$SETTINGS_REPO" ]; then
                 if [ ! -d ~/workspace/settings ]; then
                   echo ":: cloning custom settings repo..."
-                  git clone "$SETTINGS_REPO" ~/workspace/settings
+                  /usr/bin/git clone "$SETTINGS_REPO" ~/workspace/settings
                 elif [ ! -d ~/workspace/settings/.git ]; then
                   echo ":: backing up template settings, cloning custom repo..."
                   mv ~/workspace/settings ~/workspace/settings.bak
-                  git clone "$SETTINGS_REPO" ~/workspace/settings
+                  /usr/bin/git clone "$SETTINGS_REPO" ~/workspace/settings
                 else
                   echo ":: updating existing settings repo..."
-                  git -C ~/workspace/settings pull --ff-only 2>/dev/null || true
+                  /usr/bin/git -C ~/workspace/settings pull --ff-only 2>/dev/null || true
                 fi
               else
                 if [ ! -f ~/workspace/settings/flake.nix ]; then
