@@ -2,30 +2,58 @@
 
 Nix-based team dev environment for PyTorch containers on OpenShift.
 
-Provides a minimal container image (Fedora + Nix), a one-command bootstrap
-that sets up git, AI coding tools (OpenCode, Claude Code), zsh with starship
-prompt, and a nixtorch devShell for CUDA/PyTorch development.
+Provides a minimal container image (Fedora + Nix), automatic bootstrapping
+of git, AI coding tools (OpenCode, Claude Code), zsh with starship prompt,
+and a nixtorch devShell for CUDA/PyTorch development.
 
 ## Quick start
 
-Connect to your pod via SSH or oc exec:
+### 1. Deploy
 
 ```bash
-# Option A: SSH (requires oc port-forward running in another terminal)
+cd openshift
+./create-pvc.sh <username>    # one-time: creates block storage PVCs
+./deploy.sh <username>        # applies deployment
+oc scale deployment <username>-dev -n <username> --replicas=1
+```
+
+### 2. Connect
+
+The pod is fully configured when it reaches `Running`. Connect via SSH
+or oc exec:
+
+```bash
+# SSH (requires oc port-forward in another terminal):
 oc port-forward deployment/<username>-dev -n <username> 2222:22
 ssh openshift-dev
 
-# Option B: oc exec
+# Or directly:
 oc exec -it deployment/<username>-dev -n <username> -- zsh
 ```
 
-Home-manager runs automatically on pod startup. The environment is ready
-to use immediately. To customize, edit your settings and apply:
+### 3. Customize
+
+Edit your settings and apply:
 
 ```bash
-vim ~/workspace/settings/settings.nix   # set git name/email, toggle tools
+vim ~/workspace/settings/settings.nix
 torched apply
 ```
+
+## SSH config
+
+Add to `~/.ssh/config` on your laptop:
+
+```
+Host openshift-dev
+  HostName localhost
+  Port 2222
+  User root
+  StrictHostKeyChecking no
+  UserKnownHostsFile /dev/null
+```
+
+For VS Code: `Cmd+Shift+P` -> "Remote-SSH: Connect to Host" -> `openshift-dev`.
 
 ## CLI
 
@@ -33,7 +61,6 @@ torched apply
 torched apply    # apply home-manager config
 torched update   # update flake inputs + apply
 torched status   # show installed tools, nix store, flake inputs
-torched help     # usage
 ```
 
 ## Development workflow
@@ -72,8 +99,7 @@ nixtorch clean                  # remove all repos + shared venv
 
 ## Settings reference
 
-All settings live in `~/workspace/settings/settings.nix`. Here are all available options
-with their defaults:
+All settings live in `~/workspace/settings/settings.nix`:
 
 ```nix
 {
@@ -84,7 +110,6 @@ with their defaults:
   };
 
   # ── Terminal tools ────────────────────────────────────
-  # All tools are enabled by default.
   # Provide an attrset to configure, or set false to disable.
   tools = {
     # Shared Vertex AI backend for AI coding tools
@@ -112,8 +137,6 @@ with their defaults:
         maxJobs = 16;
         buildTests = false;
 
-        # Override or add any PyTorch build environment variable.
-        # These merge on top of the defaults.
         env = {
           # USE_FBGEMM = "1";
           # USE_NNPACK = "1";
@@ -144,15 +167,6 @@ with their defaults:
 }
 ```
 
-## Configuration
-
-Edit settings and re-apply:
-
-```bash
-vim ~/workspace/settings/settings.nix
-torched apply
-```
-
 ### Disable a tool
 
 ```nix
@@ -161,78 +175,38 @@ tools = {
 };
 ```
 
-## Using a custom config repo
-
-By default, the pod initializes `~/workspace/settings/` from the built-in
-template. Power users can use their own config repo (e.g. a personal NixOS
-config like [kernix](https://github.com/hinriksnaer/kernix)) by passing
-the repo URL and profile name to `deploy.sh`:
-
-```bash
-./deploy.sh <username> git@github.com:youruser/your-config.git your-profile
-```
-
-The custom repo must export `homeConfigurations.<profile>` in its `flake.nix`.
-The `devShells` output is optional -- if present, direnv will activate it in
-`~/workspace`.
-
 ## OpenShift deployment
 
 ### Prerequisites
 
 - Namespace with SSH key and gcloud secrets already configured
+- See the [devcontainers](https://github.com/skpark-rh/devcontainers) repo
+  for cluster setup (admin scripts, secrets, RBAC)
 
 ### Deploy
 
 ```bash
 cd openshift
-./create-pvc.sh <username>    # creates block storage PVCs (one-time)
-
-# Template user (defaults):
+./create-pvc.sh <username>
 ./deploy.sh <username>
-# Custom repo:
-./deploy.sh <username> git@github.com:user/repo.git profile-name
-
 oc scale deployment <username>-dev -n <username> --replicas=1
 ```
-
-### Connect
-
-```bash
-oc exec -it deployment/<username>-dev -n <username> -- zsh
-```
-
-### SSH access
-
-The container runs [dropbear](https://matt.ucc.asn.au/dropbear/dropbear.html)
-(lightweight SSH server) on port 22. Use `oc port-forward` to connect:
-
-```bash
-# In a terminal on your laptop (keep running):
-oc port-forward deployment/<username>-dev -n <username> 2222:22
-
-# Then SSH in:
-ssh openshift-dev
-```
-
-Add to `~/.ssh/config`:
-
-```
-Host openshift-dev
-  HostName localhost
-  Port 2222
-  User root
-  StrictHostKeyChecking no
-  UserKnownHostsFile /dev/null
-```
-
-For VS Code: `Cmd+Shift+P` -> "Remote-SSH: Connect to Host" -> `openshift-dev`.
 
 ### Teardown
 
 ```bash
 ./openshift/teardown.sh <username>   # deletes deployment, keeps PVCs
 ```
+
+### Using a custom config repo
+
+Power users can deploy with their own flake instead of the built-in template:
+
+```bash
+./deploy.sh <username> git@github.com:user/repo.git profile-name
+```
+
+The repo must export `homeConfigurations.<profile>` in its `flake.nix`.
 
 ## Architecture
 
@@ -246,9 +220,6 @@ torched-devcontainer (this repo)
           ├── nixtorch       CUDA toolkit, PyTorch build env, CLI
           └── home-manager   git, opencode, claude-code, direnv, zsh
 ```
-
-Team members depend only on this repo. Personal configurations
-(e.g. neovim, tmux, themes) layer on top via separate home-manager imports.
 
 ## Related
 
