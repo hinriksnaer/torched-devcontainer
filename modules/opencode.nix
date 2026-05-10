@@ -18,7 +18,7 @@
   } ''
     mkdir -p $out/bin
     cp ${pkgs.opencode}/bin/.opencode-wrapped $out/bin/opencode
-    chmod +x $out/bin/opencode
+    chmod u+wx $out/bin/opencode
     patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 $out/bin/opencode
   '';
   wrapped = pkgs.writeShellScriptBin "opencode" ''
