@@ -20,9 +20,9 @@ RUN dnf install -y \
         curl \
     && dnf clean all
 
-# Enable flakes
+# Configure Nix: enable flakes, disable build users (single-user container)
 RUN mkdir -p /root/.config/nix \
-    && echo 'experimental-features = nix-command flakes' > /root/.config/nix/nix.conf
+    && printf 'experimental-features = nix-command flakes\nbuild-users-group =\n' > /root/.config/nix/nix.conf
 
 # Ensure Nix is on PATH for non-login shells (oc exec)
 RUN echo '[ -f /root/.nix-profile/etc/profile.d/nix.sh ] && . /root/.nix-profile/etc/profile.d/nix.sh' >> /root/.bashrc
