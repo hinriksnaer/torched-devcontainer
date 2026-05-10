@@ -97,9 +97,6 @@ with their defaults:
     claude-code = true; # Anthropic Claude Code CLI
     direnv = true;      # auto-activate devShell on cd (works with VS Code)
     zsh = true;         # zsh with starship, fzf, fd, lsd, syntax highlighting
-
-    # Available but disabled by default -- uncomment to enable:
-    # cli-tools = true; # additional CLI tools (bat, ripgrep, zoxide, etc.)
   };
 
   # ── CUDA / PyTorch development shell ──────────────────
@@ -161,14 +158,6 @@ torched apply
 ```nix
 tools = {
   opencode = false;
-};
-```
-
-### Enable an optional tool
-
-```nix
-tools = {
-  cli-tools = true;
 };
 ```
 

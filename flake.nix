@@ -51,16 +51,6 @@
 
     # ── Packages ──
     packages.${system} = {
-      # Bootstrap script (nix run .#setup)
-      setup = pkgs.writeShellScriptBin "torched-setup" (builtins.readFile ./cli/setup.sh);
-
-      # CLI tool for managing the container environment
-      torched = pkgs.writeShellApplication {
-        name = "torched";
-        runtimeInputs = with pkgs; [coreutils nix];
-        text = builtins.readFile ./cli/torched.sh;
-      };
-
       # Pre-baked HM closure (for container image).
       # Built in CI and imported into the Docker image so
       # home-manager switch is instant in the pod.
@@ -70,30 +60,12 @@
         (self.lib.mkContainerHome defaultSettings).activationPackage;
     };
 
-    # ── Standardized team devShell ──
-    devShells.${system}.default = nixtorch.lib.mkDevShell {
-      cudaVisibleDevices = "";
-      workspace = "$HOME/workspace";
-      projects = {
-        pytorch = {
-          cudaArch = "9.0";
-          maxJobs = 16;
-        };
-        helion = {
-          torchIndex = "nightly/cu130";
-          backends = ["cute"];
-        };
-      };
-    };
-
     # ── Template ──
     templates.default = {
       path = ./template;
       description = "PyTorch container dev environment with terminal tooling";
       welcomeText = ''
         PyTorch container dev environment created.
-
-         Run: nix run github:hinriksnaer/torched-devcontainer#setup
 
         To build PyTorch: nixtorch build pytorch
         To update:        torched update

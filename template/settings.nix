@@ -18,10 +18,7 @@
     opencode = true; # AI coding assistant (opencode.ai)
     claude-code = true; # Anthropic Claude Code CLI
     direnv = true; # auto-activate devShell on cd (works with VS Code)
-    zsh = true; # minimal zsh with completions and history
-
-    # Available but disabled by default -- uncomment to enable:
-    # cli-tools = true;   # starship prompt, fzf, zoxide, bat, lsd, ripgrep, fd
+    zsh = true; # zsh with starship, fzf, fd, lsd, syntax highlighting
   };
 
   # ── CUDA / PyTorch development shell ──────────────────

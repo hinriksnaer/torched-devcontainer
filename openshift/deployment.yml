@@ -114,6 +114,13 @@ spec:
               # Source Nix
               . /root/.nix-profile/etc/profile.d/nix.sh 2>/dev/null || true
 
+              # Persist env vars for SSH sessions (dropbear doesn't forward container env)
+              cat > /etc/profile.d/torched.sh << EOF
+              export HM_PROFILE='${HM_PROFILE:-default}'
+              export SETTINGS_REPO='${SETTINGS_REPO}'
+              export SETTINGS_DIR="\$HOME/workspace/settings"
+EOF
+
               # Start SSH immediately (before HM switch so users can connect early)
               mkdir -p /root/.ssh
               if [ -f /root/.ssh-keys/id_ed25519 ]; then

@@ -57,7 +57,7 @@
   # ── CLI tool ────────────────────────────────────────────
   torched = pkgs.writeShellApplication {
     name = "torched";
-    runtimeInputs = with pkgs; [coreutils nix home-manager];
+    runtimeInputs = with pkgs; [coreutils nix];
     text = builtins.readFile (modulesPath + "/../cli/torched.sh");
   };
 
