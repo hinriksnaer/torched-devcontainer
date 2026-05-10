@@ -1,35 +1,26 @@
 #!/usr/bin/env bash
-# Create persistent volume claims for a user's dev environment.
+# Create the Nix store PVC for a user's dev environment.
+# The home PVC (pytorch-ibmc-storage-*) is assumed to already exist.
 # Usage: ./create-pvc.sh <username>
 
 set -euo pipefail
 
 USERNAME="${1:?Usage: $0 <username>}"
 
-echo "Creating PVCs for ${USERNAME}..."
+echo "Creating Nix store PVC for ${USERNAME}..."
 
 oc apply -f - <<EOF
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: pytorch-ibmc-storage-${USERNAME}
-  namespace: ${USERNAME}
-spec:
-  accessModes: [ReadWriteOnce]
-  resources:
-    requests:
-      storage: 100Gi
----
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: nix-store-${USERNAME}
   namespace: ${USERNAME}
 spec:
-  accessModes: [ReadWriteOnce]
+  accessModes: [ReadWriteMany]
+  storageClassName: nfs-rwx
   resources:
     requests:
       storage: 50Gi
 EOF
 
-echo "PVCs created."
+echo "PVC created."

@@ -8,7 +8,6 @@
 #   - Secret:  <username>-gcloud-config  (application_default_credentials.json)
 #   - PVC:     pytorch-ibmc-storage-<username>
 #   - PVC:     nix-store-<username>      (persistent Nix store)
-#   - Secret:  <username>-pull-secret    (registry pull credentials)
 #
 # Deploy:
 #   oc apply -f deployment.yml
@@ -147,8 +146,6 @@ spec:
       securityContext:
         runAsUser: 0
         runAsGroup: 0
-      imagePullSecrets:
-        - name: <username>-pull-secret
       schedulerName: default-scheduler
 
   strategy:
