@@ -185,3 +185,7 @@ torched-devcontainer (this repo)
 
 Team members depend only on this repo. Personal configurations
 (e.g. neovim, tmux, themes) layer on top via separate home-manager imports.
+
+## Related
+
+- [nixtorch](https://github.com/hinriksnaer/nixtorch) -- CUDA development shell for PyTorch, Helion, and vLLM
