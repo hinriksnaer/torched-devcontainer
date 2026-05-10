@@ -37,19 +37,15 @@ jobs:
             experimental-features = nix-command flakes
             accept-flake-config = true
 
-      - name: Build and export Nix closures
+      - name: Build and export HM closure
         run: |
           echo "Building HM config closure..."
           hm_path=$(nix build .#container-home --no-link --print-out-paths)
 
-          echo "Building devShell closure..."
-          ds_path=$(nix build .#container-devshell --no-link --print-out-paths)
-
-          echo "Exporting closures to NAR..."
-          nix-store --export $(nix-store -qR "$hm_path" "$ds_path") > container/closure.nar
+          echo "Exporting closure to NAR..."
+          nix-store --export $(nix-store -qR "$hm_path") > container/closure.nar
 
           echo "Closure size: $(du -sh container/closure.nar | cut -f1)"
-          df -h
 
       - name: Log in to Quay.io
         uses: docker/login-action@v3

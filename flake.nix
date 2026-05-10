@@ -54,15 +54,13 @@
       # Bootstrap script (nix run .#setup)
       setup = pkgs.writeShellScriptBin "torched-setup" (builtins.readFile ./cli/setup.sh);
 
-      # Pre-baked closures (for container image).
+      # Pre-baked HM closure (for container image).
       # Built in CI and imported into the Docker image so
-      # home-manager switch and nix develop are instant in the pod.
+      # home-manager switch is instant in the pod.
       container-home = let
         defaultSettings = import ./template/settings.nix;
       in
         (self.lib.mkContainerHome defaultSettings).activationPackage;
-
-      container-devshell = self.devShells.${system}.default;
     };
 
     # ── Standardized team devShell ──
