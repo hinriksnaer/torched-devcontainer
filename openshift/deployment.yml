@@ -115,11 +115,20 @@ spec:
               . /root/.nix-profile/etc/profile.d/nix.sh 2>/dev/null || true
 
               # Init settings: clone custom repo or use built-in template
-              if [ ! -f ~/workspace/settings/flake.nix ]; then
-                if [ -n "$SETTINGS_REPO" ]; then
+              if [ -n "$SETTINGS_REPO" ]; then
+                if [ ! -d ~/workspace/settings ]; then
                   echo ":: cloning custom settings repo..."
                   git clone "$SETTINGS_REPO" ~/workspace/settings
+                elif [ ! -d ~/workspace/settings/.git ]; then
+                  echo ":: backing up template settings, cloning custom repo..."
+                  mv ~/workspace/settings ~/workspace/settings.bak
+                  git clone "$SETTINGS_REPO" ~/workspace/settings
                 else
+                  echo ":: updating existing settings repo..."
+                  git -C ~/workspace/settings pull --ff-only 2>/dev/null || true
+                fi
+              else
+                if [ ! -f ~/workspace/settings/flake.nix ]; then
                   mkdir -p ~/workspace/settings
                   cd ~/workspace/settings
                   nix flake init -t github:hinriksnaer/torched-devcontainer
