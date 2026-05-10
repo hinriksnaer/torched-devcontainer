@@ -65,13 +65,11 @@ cd ~/settings && nix flake update && home-manager switch --flake .#default
 ### Prerequisites
 
 - Namespace with SSH key and gcloud secrets already configured
-- Nix store PVC created (see below)
 
 ### Deploy
 
 ```bash
 cd openshift
-./create-pvc.sh <username>    # creates nix-store PVC (nfs-rwx)
 ./deploy.sh <username>        # applies deployment YAML
 oc scale deployment <username>-dev -n <username> --replicas=1
 ```
@@ -85,7 +83,7 @@ oc exec -it deployment/<username>-dev -n <username> -- bash
 ### Teardown
 
 ```bash
-./openshift/teardown.sh <username>   # deletes deployment, keeps PVCs
+./openshift/teardown.sh <username>   # deletes deployment
 ```
 
 ## Architecture
