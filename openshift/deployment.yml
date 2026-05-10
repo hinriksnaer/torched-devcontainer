@@ -14,7 +14,7 @@
 #   oc scale deployment <username>-dev -n <username> --replicas=1
 #
 # Connect:
-#   oc exec -it deployment/<username>-dev -- bash
+#   oc exec -it deployment/<username>-dev -- zsh
 #
 # First-time setup inside the pod:
 #   vim ~/settings/settings.nix   # set git name/email

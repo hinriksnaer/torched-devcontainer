@@ -16,11 +16,12 @@ FROM ${BASE_IMAGE}
 
 USER root
 
-# Install Nix and minimal bootstrap tools
+# Install Nix, zsh, and minimal bootstrap tools
 RUN dnf install -y \
         nix \
         git \
         curl \
+        zsh \
     && dnf clean all
 
 # Configure Nix: enable flakes, disable build users (single-user container)
@@ -30,8 +31,12 @@ RUN mkdir -p /root/.config/nix \
 # Set USER env var (required by home-manager, not set by oc exec)
 ENV USER=root
 
+# Set zsh as default shell
+RUN chsh -s /bin/zsh root
+
 # Ensure Nix is on PATH for non-login shells (oc exec)
-RUN echo '[ -f /root/.nix-profile/etc/profile.d/nix.sh ] && . /root/.nix-profile/etc/profile.d/nix.sh' >> /root/.bashrc
+RUN echo '[ -f /root/.nix-profile/etc/profile.d/nix.sh ] && . /root/.nix-profile/etc/profile.d/nix.sh' >> /root/.bashrc \
+    && echo '[ -f /root/.nix-profile/etc/profile.d/nix.sh ] && . /root/.nix-profile/etc/profile.d/nix.sh' >> /root/.zshrc
 
 # Pre-seed SSH known hosts (GitHub, GitLab)
 # Actual SSH keys are mounted as K8s secrets at runtime.

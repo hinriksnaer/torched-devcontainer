@@ -21,7 +21,7 @@ default shell on your next session. Reconnect to enter zsh:
 
 ```bash
 exit
-oc exec -it deployment/<username>-dev -n <username> -- bash
+oc exec -it deployment/<username>-dev -n <username> -- zsh
 ```
 
 ## Build PyTorch
@@ -83,7 +83,7 @@ oc scale deployment <username>-dev -n <username> --replicas=1
 ### Connect
 
 ```bash
-oc exec -it deployment/<username>-dev -n <username> -- bash
+oc exec -it deployment/<username>-dev -n <username> -- zsh
 ```
 
 ### Teardown
