@@ -14,15 +14,13 @@ Connect to your pod:
 oc exec -it deployment/<username>-dev -n <username> -- zsh
 ```
 
-The `~/settings` directory with the template is auto-created on pod startup.
-Edit your git identity and apply:
+Home-manager runs automatically on pod startup. The environment is ready
+to use immediately. To customize, edit your settings and apply:
 
 ```bash
-vim ~/settings/settings.nix
-nix run home-manager/master -- switch -b backup --flake ~/settings#default
+vim ~/settings/settings.nix   # set git name/email, toggle tools
+torched apply
 ```
-
-After the first apply, the `torched` CLI is available for all future operations.
 
 ## CLI
 

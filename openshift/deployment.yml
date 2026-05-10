@@ -17,9 +17,8 @@
 # Connect:
 #   oc exec -it deployment/<username>-dev -- zsh
 #
-# First-time setup inside the pod:
-#   vim ~/settings/settings.nix   # set git name/email
-#   nix run home-manager/master -- switch -b backup --flake ~/settings#default
+# Home-manager runs automatically on pod startup.
+# To customize: vim ~/settings/settings.nix && torched apply
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -103,22 +102,32 @@ spec:
             - /bin/bash
             - '-c'
             - |
+              # Source Nix
+              . /root/.nix-profile/etc/profile.d/nix.sh 2>/dev/null || true
+
               # Init settings template on first boot
               if [ ! -f ~/settings/flake.nix ]; then
                 mkdir -p ~/settings
                 cd ~/settings
                 nix flake init -t github:hinriksnaer/torched-devcontainer
               fi
+
+              # Apply home-manager config (packages cached on /nix PVC after first run)
+              echo ":: applying home-manager config..."
+              nix run home-manager/master -- switch -b backup --flake ~/settings#default 2>&1 || true
+
               # Pre-approve direnv workspace .envrc (allow list is ephemeral)
               if command -v direnv >/dev/null 2>&1; then
                 direnv allow ~/workspace 2>/dev/null
               fi
+
               # Set up SSH: copy mounted pubkey to authorized_keys and start sshd
               if [ -f /root/.ssh/id_ed25519.pub ]; then
                 cp /root/.ssh/id_ed25519.pub /root/.ssh-authorized/authorized_keys
                 chmod 600 /root/.ssh-authorized/authorized_keys
               fi
               /usr/sbin/sshd
+
               exec /bin/bash
           ports:
             - containerPort: 22
