@@ -108,6 +108,11 @@ spec:
                 cd ~/settings
                 nix flake init -t github:hinriksnaer/torched-devcontainer
               fi
+              # Pre-approve direnv .envrc files (allow list is ephemeral)
+              if command -v direnv >/dev/null 2>&1; then
+                direnv allow ~/settings 2>/dev/null
+                direnv allow ~/workspace 2>/dev/null
+              fi
               exec /bin/bash
           ports:
             - containerPort: 8080
