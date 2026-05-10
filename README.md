@@ -127,6 +127,7 @@ All settings live in `~/workspace/settings/settings.nix`:
   # ── CUDA / PyTorch development shell ──────────────────
   devShell = {
     cudaVisibleDevices = "";              # "" = all GPUs, or e.g. "0,1"
+    # cudaVersion = "12.9";              # pin CUDA version (12.6, 12.8, 12.9, 13.0, 13.1, 13.2)
     workspace = "$HOME/workspace";       # where projects are cloned and built
 
     projects = {
