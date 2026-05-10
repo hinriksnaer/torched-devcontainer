@@ -27,6 +27,9 @@ RUN dnf install -y \
 RUN mkdir -p /root/.config/nix \
     && printf 'experimental-features = nix-command flakes\nbuild-users-group =\n' > /root/.config/nix/nix.conf
 
+# Set USER env var (required by home-manager, not set by oc exec)
+ENV USER=root
+
 # Ensure Nix is on PATH for non-login shells (oc exec)
 RUN echo '[ -f /root/.nix-profile/etc/profile.d/nix.sh ] && . /root/.nix-profile/etc/profile.d/nix.sh' >> /root/.bashrc
 
