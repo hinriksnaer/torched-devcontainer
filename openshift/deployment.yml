@@ -169,38 +169,23 @@ spec:
           env:
             - name: HM_PROFILE
               value: "default"
-            - name: SETTINGS_REPO
-              value: ""
           command:
             - /bin/bash
             - '-c'
             - |
-              # Source Nix
               . /root/.nix-profile/etc/profile.d/nix.sh 2>/dev/null || true
 
-              # Persist env vars for SSH sessions (dropbear doesn't forward container env)
-              printf 'export HM_PROFILE="%s"\nexport SETTINGS_REPO="%s"\nexport SETTINGS_DIR="$HOME/workspace/settings"\n' \
-                "${HM_PROFILE:-default}" "${SETTINGS_REPO}" > /etc/profile.d/torched.sh
-
-              # Re-apply home-manager (instant -- packages cached on /nix PVC, just creates symlinks)
-              echo ":: applying home-manager config..."
+              # HM symlinks (packages already cached by init-config)
               nix run home-manager/master -- switch -b backup \
                 --flake "/root/workspace/settings#${HM_PROFILE:-default}" 2>&1 || true
+              command -v direnv >/dev/null 2>&1 && direnv allow ~/workspace 2>/dev/null
 
-              # Approve direnv workspace .envrc (allow list is ephemeral)
-              if command -v direnv >/dev/null 2>&1; then
-                direnv allow ~/workspace 2>/dev/null
-              fi
-
-              # Set up SSH keys and start dropbear
+              # SSH
               mkdir -p /root/.ssh
-              if [ -f /root/.ssh-keys/id_ed25519 ]; then
-                cp /root/.ssh-keys/id_ed25519 /root/.ssh/id_ed25519
-                cp /root/.ssh-keys/id_ed25519.pub /root/.ssh/authorized_keys
-                cp /root/.ssh-keys/known_hosts /root/.ssh/known_hosts 2>/dev/null
-                chmod 700 /root/.ssh
-                chmod 600 /root/.ssh/id_ed25519 /root/.ssh/authorized_keys
-              fi
+              cp /root/.ssh-keys/id_ed25519 /root/.ssh/id_ed25519 2>/dev/null
+              cp /root/.ssh-keys/id_ed25519.pub /root/.ssh/authorized_keys 2>/dev/null
+              cp /root/.ssh-keys/known_hosts /root/.ssh/known_hosts 2>/dev/null
+              chmod 700 /root/.ssh 2>/dev/null; chmod 600 /root/.ssh/* 2>/dev/null
               /usr/sbin/dropbear -R -E -p 22
 
               exec /bin/bash
