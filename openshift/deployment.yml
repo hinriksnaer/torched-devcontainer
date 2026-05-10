@@ -6,7 +6,6 @@
 # Prerequisites (create these in your namespace first):
 #   - Secret:  <username>-git-ssh-key    (ssh-privatekey, ssh-publickey, known_hosts)
 #   - Secret:  <username>-gcloud-config  (application_default_credentials.json)
-#   - PVC:     pytorch-ibmc-storage-<username>
 #   - PVC:     nix-store-<username>      (persistent Nix store)
 #
 # Deploy:
@@ -17,7 +16,8 @@
 #   oc exec -it deployment/<username>-dev -- bash
 #
 # First-time setup inside the pod:
-#   nix run github:hinriksnaer/torched-devcontainer#setup
+#   vim ~/settings/settings.nix   # set git name/email
+#   nix run home-manager/master -- switch --flake ~/settings#default
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -53,11 +53,6 @@ spec:
             secretName: <username>-gcloud-config
             defaultMode: 0600
 
-        # Persistent storage for /root (survives pod restarts)
-        - name: home-data
-          persistentVolumeClaim:
-            claimName: pytorch-ibmc-storage-<username>
-
         # Persistent Nix store (survives pod restarts, avoids re-fetching packages)
         - name: nix-store
           persistentVolumeClaim:
@@ -69,17 +64,13 @@ spec:
             medium: Memory
 
       initContainers:
-        # Seed /root and /nix to PVCs on first boot
-        - name: init-home
+        # Seed /nix to PVC on first boot
+        - name: init-nix
           image: 'quay.io/rh-ee-hgudmund/torched-devcontainer:latest'
           command:
             - /bin/bash
             - '-c'
             - |
-              if [ ! -f /mnt/home/.bashrc ]; then
-                echo "First boot -- initializing persistent home..."
-                cp -a /root/. /mnt/home/
-              fi
               if [ ! -d /mnt/nix/store ]; then
                 echo "First boot -- seeding Nix store..."
                 cp -a /nix/. /mnt/nix/
@@ -92,8 +83,6 @@ spec:
               cpu: 500m
               memory: 512Mi
           volumeMounts:
-            - name: home-data
-              mountPath: /mnt/home
             - name: nix-store
               mountPath: /mnt/nix
 
@@ -105,6 +94,14 @@ spec:
           tty: true
           command:
             - /bin/bash
+            - '-c'
+            - |
+              if [ ! -f ~/settings/flake.nix ]; then
+                mkdir -p ~/settings
+                cd ~/settings
+                nix flake init -t github:hinriksnaer/torched-devcontainer
+              fi
+              exec /bin/bash
           ports:
             - containerPort: 8080
               protocol: TCP
@@ -118,9 +115,6 @@ spec:
               memory: 64Gi
               nvidia.com/mig-2g.35gb: '1'
           volumeMounts:
-            # Persistent home directory
-            - name: home-data
-              mountPath: /root
             # SSH keys (read-only, from K8s secret)
             - name: ssh-key
               mountPath: /root/.ssh
