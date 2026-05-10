@@ -5,26 +5,32 @@
 #   update       Update flake inputs and apply
 #   status       Show environment status
 #   help         Show this help
+#
+# Environment variables:
+#   SETTINGS_DIR  Path to settings flake (default: ~/workspace/settings)
+#   HM_PROFILE    Home-manager profile name (default: default)
 
 SETTINGS_DIR="${SETTINGS_DIR:-$HOME/workspace/settings}"
+HM_PROFILE="${HM_PROFILE:-default}"
 
 case "${1:-apply}" in
     apply)
-        echo ":: applying home-manager config"
-        nix run home-manager/master -- switch -b backup --flake "${SETTINGS_DIR}#default" "${@:2}"
+        echo ":: applying home-manager config (profile: ${HM_PROFILE})"
+        nix run home-manager/master -- switch -b backup --flake "${SETTINGS_DIR}#${HM_PROFILE}" "${@:2}"
         echo ":: done"
         ;;
     update)
         echo ":: updating flake inputs"
         nix flake update --flake "${SETTINGS_DIR}"
-        echo ":: applying home-manager config"
-        nix run home-manager/master -- switch -b backup --flake "${SETTINGS_DIR}#default" "${@:2}"
+        echo ":: applying home-manager config (profile: ${HM_PROFILE})"
+        nix run home-manager/master -- switch -b backup --flake "${SETTINGS_DIR}#${HM_PROFILE}" "${@:2}"
         echo ":: done — restart shell or run 'direnv reload' to pick up changes"
         ;;
     status)
         echo "torched-devcontainer"
         echo ""
         echo "Settings:  ${SETTINGS_DIR}"
+        echo "Profile:   ${HM_PROFILE}"
         echo "Workspace: $HOME/workspace"
         echo ""
         echo ":: tools"
@@ -53,6 +59,7 @@ case "${1:-apply}" in
         echo "  status     Show environment status"
         echo ""
         echo "Settings dir: ${SETTINGS_DIR}"
+        echo "Profile:      ${HM_PROFILE}"
         ;;
     *)
         echo "Error: unknown command '${1}'" >&2

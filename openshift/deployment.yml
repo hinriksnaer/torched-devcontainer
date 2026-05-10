@@ -98,6 +98,15 @@ spec:
           imagePullPolicy: Always
           stdin: true
           tty: true
+          env:
+            # Home-manager profile name (default: "default")
+            # Custom repos can use their own profile, e.g. "root@container"
+            - name: HM_PROFILE
+              value: "default"
+            # Git repo URL for settings (default: empty = use built-in template)
+            # Set to a git URL to use a custom config repo, e.g. kernix
+            - name: SETTINGS_REPO
+              value: ""
           command:
             - /bin/bash
             - '-c'
@@ -105,16 +114,21 @@ spec:
               # Source Nix
               . /root/.nix-profile/etc/profile.d/nix.sh 2>/dev/null || true
 
-              # Init settings template on first boot
+              # Init settings: clone custom repo or use built-in template
               if [ ! -f ~/workspace/settings/flake.nix ]; then
-                mkdir -p ~/workspace/settings
-                cd ~/workspace/settings
-                nix flake init -t github:hinriksnaer/torched-devcontainer
+                if [ -n "$SETTINGS_REPO" ]; then
+                  echo ":: cloning custom settings repo..."
+                  git clone "$SETTINGS_REPO" ~/workspace/settings
+                else
+                  mkdir -p ~/workspace/settings
+                  cd ~/workspace/settings
+                  nix flake init -t github:hinriksnaer/torched-devcontainer
+                fi
               fi
 
               # Apply home-manager config (packages cached on /nix PVC after first run)
-              echo ":: applying home-manager config..."
-              nix run home-manager/master -- switch -b backup --flake ~/workspace/settings#default 2>&1 || true
+              echo ":: applying home-manager config (profile: ${HM_PROFILE:-default})..."
+              nix run home-manager/master -- switch -b backup --flake "~/workspace/settings#${HM_PROFILE:-default}" 2>&1 || true
 
               # Pre-approve direnv workspace .envrc (allow list is ephemeral)
               if command -v direnv >/dev/null 2>&1; then

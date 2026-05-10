@@ -172,6 +172,29 @@ tools = {
 };
 ```
 
+## Using a custom config repo
+
+By default, the pod initializes `~/workspace/settings/` from the built-in
+template. Power users can use their own config repo (e.g. a personal NixOS
+config like [kernix](https://github.com/hinriksnaer/kernix)) by setting
+two environment variables in the deployment YAML:
+
+```yaml
+env:
+  - name: SETTINGS_REPO
+    value: "git@github.com:youruser/your-config.git"
+  - name: HM_PROFILE
+    value: "root@container"   # must match a homeConfigurations key in your flake
+```
+
+The pod will clone the repo on first boot instead of using the template.
+`torched apply`, `torched update`, and the auto-startup switch all use the
+`HM_PROFILE` env var to select the right home-manager configuration.
+
+The custom repo must export `homeConfigurations.<profile>` in its `flake.nix`.
+The `devShells` output is optional -- if present, direnv will activate it in
+`~/workspace`.
+
 ## OpenShift deployment
 
 ### Prerequisites
