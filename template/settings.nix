@@ -25,6 +25,7 @@
   devShell = {
     cudaVisibleDevices = ""; # "" = all GPUs, or e.g. "0,1"
     workspace = "$HOME/workspace"; # where projects are cloned and built
+    # cudaVersion = "12.9";       # pin CUDA version (default: nixpkgs default)
 
     projects = {
       pytorch = {
