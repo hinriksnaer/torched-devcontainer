@@ -18,7 +18,7 @@
 #
 # First-time setup inside the pod:
 #   vim ~/settings/settings.nix   # set git name/email
-#   nix run home-manager/master -- switch --flake ~/settings#default
+#   nix run home-manager/master -- switch -b backup --flake ~/settings#default
 kind: Deployment
 apiVersion: apps/v1
 metadata:

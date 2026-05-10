@@ -42,12 +42,12 @@ APPLY="${APPLY:-Y}"
 
 if [[ "$APPLY" =~ ^[Yy]$ ]]; then
   echo "Applying home-manager configuration..."
-  nix run home-manager/master -- switch --flake "$SETTINGS_DIR#default"
+  nix run home-manager/master -- switch -b backup --flake "$SETTINGS_DIR#default"
   echo ""
   echo "Done! Your environment is ready."
   echo "cd ~/workspace to enter the devShell."
 else
   echo ""
   echo "Skipped. Apply later with:"
-  echo "  nix run home-manager/master -- switch --flake $SETTINGS_DIR#default"
+  echo "  nix run home-manager/master -- switch -b backup --flake $SETTINGS_DIR#default"
 fi

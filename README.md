@@ -12,12 +12,17 @@ Connect to your pod and run:
 
 ```bash
 vim ~/settings/settings.nix   # set git name/email
-nix run home-manager/master -- switch --flake ~/settings#default
+nix run home-manager/master -- switch -b backup --flake ~/settings#default
 ```
 
 The `~/settings` directory with the template is auto-created on pod startup.
 After the first switch, `home-manager` is on PATH and zsh becomes the
-default shell on your next session.
+default shell on your next session. Reconnect to enter zsh:
+
+```bash
+exit
+oc exec -it deployment/<username>-dev -n <username> -- bash
+```
 
 ## Build PyTorch
 
@@ -33,7 +38,7 @@ All settings live in `~/settings/settings.nix`. Edit and re-apply:
 
 ```bash
 vim ~/settings/settings.nix
-home-manager switch --flake ~/settings#default
+home-manager switch -b backup --flake ~/settings#default
 ```
 
 ### Disable a tool
