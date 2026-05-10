@@ -54,6 +54,13 @@
       # Bootstrap script (nix run .#setup)
       setup = pkgs.writeShellScriptBin "torched-setup" (builtins.readFile ./cli/setup.sh);
 
+      # CLI tool for managing the container environment
+      torched = pkgs.writeShellApplication {
+        name = "torched";
+        runtimeInputs = with pkgs; [coreutils nix home-manager];
+        text = builtins.readFile ./cli/torched.sh;
+      };
+
       # Pre-baked HM closure (for container image).
       # Built in CI and imported into the Docker image so
       # home-manager switch is instant in the pod.

@@ -54,6 +54,13 @@
   # ── Vertex config ─────────────────────────────────────
   vertexCfg = toolConfig "vertex";
 
+  # ── CLI tool ────────────────────────────────────────────
+  torched = pkgs.writeShellApplication {
+    name = "torched";
+    runtimeInputs = with pkgs; [coreutils nix home-manager];
+    text = builtins.readFile (modulesPath + "/../cli/torched.sh");
+  };
+
   # ── All modules (always imported for option definitions) ──
   allModules = [
     (modulesPath + "/git.nix")
@@ -74,6 +81,7 @@ in
           home.username = username;
           home.homeDirectory = homeDir;
           home.stateVersion = "24.11";
+          home.packages = [torched];
 
           # Wire user config into module options
           devSetup = {
