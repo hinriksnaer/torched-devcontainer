@@ -11,14 +11,14 @@ SETTINGS_DIR="${SETTINGS_DIR:-$HOME/settings}"
 case "${1:-apply}" in
     apply)
         echo ":: applying home-manager config"
-        home-manager switch -b backup --flake "${SETTINGS_DIR}#default" "${@:2}"
+        nix run home-manager/master -- switch -b backup --flake "${SETTINGS_DIR}#default" "${@:2}"
         echo ":: done"
         ;;
     update)
         echo ":: updating flake inputs"
         nix flake update --flake "${SETTINGS_DIR}"
         echo ":: applying home-manager config"
-        home-manager switch -b backup --flake "${SETTINGS_DIR}#default" "${@:2}"
+        nix run home-manager/master -- switch -b backup --flake "${SETTINGS_DIR}#default" "${@:2}"
         echo ":: done — restart shell or run 'direnv reload' to pick up changes"
         ;;
     status)

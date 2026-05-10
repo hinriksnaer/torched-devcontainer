@@ -57,7 +57,7 @@
       # CLI tool for managing the container environment
       torched = pkgs.writeShellApplication {
         name = "torched";
-        runtimeInputs = with pkgs; [coreutils nix home-manager];
+        runtimeInputs = with pkgs; [coreutils nix];
         text = builtins.readFile ./cli/torched.sh;
       };
 
