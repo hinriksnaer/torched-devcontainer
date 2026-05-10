@@ -49,8 +49,21 @@
       container = ./modules/container.nix;
     };
 
-    # ── Bootstrap script (nix run .#setup) ──
-    packages.${system}.setup = pkgs.writeShellScriptBin "torched-setup" (builtins.readFile ./cli/setup.sh);
+    # ── Packages ──
+    packages.${system} = {
+      # Bootstrap script (nix run .#setup)
+      setup = pkgs.writeShellScriptBin "torched-setup" (builtins.readFile ./cli/setup.sh);
+
+      # Pre-baked closures (for container image).
+      # Built in CI and imported into the Docker image so
+      # home-manager switch and nix develop are instant in the pod.
+      container-home = let
+        defaultSettings = import ./template/settings.nix;
+      in
+        (self.lib.mkContainerHome defaultSettings).activationPackage;
+
+      container-devshell = self.devShells.${system}.default;
+    };
 
     # ── Standardized team devShell ──
     devShells.${system}.default = nixtorch.lib.mkDevShell {
