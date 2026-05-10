@@ -94,7 +94,7 @@ in
 
             container = {
               inherit workspace;
-              configDir = container.configDir or "$HOME/config";
+              configDir = container.configDir or "$HOME/settings";
             };
           };
         }

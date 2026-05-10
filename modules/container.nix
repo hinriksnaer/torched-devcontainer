@@ -18,7 +18,7 @@ in {
 
     configDir = lib.mkOption {
       type = lib.types.str;
-      default = "$HOME/config";
+      default = "$HOME/settings";
       description = "Path to this flake (for direnv .envrc generation).";
     };
   };

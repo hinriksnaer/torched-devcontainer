@@ -72,12 +72,13 @@
       welcomeText = ''
         PyTorch container dev environment created.
 
-         1. Edit settings.nix (at minimum: git name and email)
-        2. Run: nix run home-manager/master -- switch --flake .#default
-        3. cd into your workspace -- direnv auto-activates the devShell
+         1. mkdir ~/settings && cd ~/settings
+        2. Edit settings.nix (at minimum: git name and email)
+        3. Run: nix run home-manager/master -- switch --flake .#default
+        4. cd into your workspace -- direnv auto-activates the devShell
 
         To build PyTorch: nixtorch build pytorch
-        To update:        nix flake update && home-manager switch --flake .#default
+        To update:        cd ~/settings && nix flake update && home-manager switch --flake .#default
       '';
     };
   };
