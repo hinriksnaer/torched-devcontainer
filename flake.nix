@@ -49,6 +49,9 @@
       container = ./modules/container.nix;
     };
 
+    # ── Bootstrap script (nix run .#setup) ──
+    packages.${system}.setup = pkgs.writeShellScriptBin "torched-setup" (builtins.readFile ./cli/setup.sh);
+
     # ── Standardized team devShell ──
     devShells.${system}.default = nixtorch.lib.mkDevShell {
       cudaVisibleDevices = "";
@@ -72,10 +75,7 @@
       welcomeText = ''
         PyTorch container dev environment created.
 
-         1. mkdir ~/settings && cd ~/settings
-        2. Edit settings.nix (at minimum: git name and email)
-        3. Run: nix run home-manager/master -- switch --flake .#default
-        4. cd into your workspace -- direnv auto-activates the devShell
+         Run: nix run github:hinriksnaer/torched-devcontainer#setup
 
         To build PyTorch: nixtorch build pytorch
         To update:        cd ~/settings && nix flake update && home-manager switch --flake .#default

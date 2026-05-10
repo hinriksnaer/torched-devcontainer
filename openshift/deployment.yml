@@ -17,10 +17,7 @@
 #   oc exec -it deployment/<username>-dev -- bash
 #
 # First-time setup inside the pod:
-#   mkdir ~/settings && cd ~/settings
-#   nix flake init -t github:hinriksnaer/torched-devcontainer
-#   vim settings.nix   # set git name/email
-#   nix run home-manager/master -- switch --flake .#default
+#   nix run github:hinriksnaer/torched-devcontainer#setup
 kind: Deployment
 apiVersion: apps/v1
 metadata:
