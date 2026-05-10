@@ -9,5 +9,5 @@ USERNAME="${1:?Usage: $0 <username>}"
 echo "Deleting deployment for ${USERNAME}..."
 oc delete deployment "${USERNAME}-dev" -n "${USERNAME}" --ignore-not-found
 
-echo "Deployment deleted. PVC preserved."
-echo "To also delete the Nix store PVC: oc delete pvc nix-store-${USERNAME} -n ${USERNAME}"
+echo "Deployment deleted. PVCs preserved."
+echo "To also delete PVCs: oc delete pvc nix-store-${USERNAME} workspace-${USERNAME} -n ${USERNAME}"

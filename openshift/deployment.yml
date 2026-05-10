@@ -7,6 +7,7 @@
 #   - Secret:  <username>-git-ssh-key    (ssh-privatekey, ssh-publickey, known_hosts)
 #   - Secret:  <username>-gcloud-config  (application_default_credentials.json)
 #   - PVC:     nix-store-<username>      (block storage, created by create-pvc.sh)
+#   - PVC:     workspace-<username>      (block storage, created by create-pvc.sh)
 #
 # Deploy:
 #   ./create-pvc.sh <username>
@@ -58,6 +59,11 @@ spec:
         - name: nix-store
           persistentVolumeClaim:
             claimName: nix-store-<username>
+
+        # Persistent workspace on block storage (fast IOPS, WaitForFirstConsumer)
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: workspace-<username>
 
         # Shared memory for PyTorch DataLoader workers
         - name: dshm
@@ -127,6 +133,9 @@ spec:
             # Persistent Nix store (block storage, fast IOPS)
             - name: nix-store
               mountPath: /nix
+            # Persistent workspace (block storage, fast IOPS)
+            - name: workspace
+              mountPath: /root/workspace
             # Shared memory for DataLoader
             - name: dshm
               mountPath: /dev/shm
