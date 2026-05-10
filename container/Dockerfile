@@ -16,29 +16,14 @@ FROM ${BASE_IMAGE}
 
 USER root
 
-# Install Nix, zsh, sshd, and minimal bootstrap tools
+# Install Nix, zsh, dropbear (lightweight SSH), and minimal bootstrap tools
 RUN dnf install -y \
         nix \
         git \
         curl \
         zsh \
-        openssh-server \
+        dropbear \
     && dnf clean all
-
-# Generate SSH host keys and configure sshd
-# authorized_keys is read from a writable path since /root/.ssh is a read-only K8s secret mount
-# Generate SSH host keys and configure sshd for container use:
-# - Key-only root login (no passwords)
-# - No privilege separation (container lacks SYS_CHROOT capability)
-# - authorized_keys from writable path (K8s secret mount is read-only)
-RUN ssh-keygen -A \
-    && mkdir -p /root/.ssh-authorized /run/sshd \
-    && cat > /etc/ssh/sshd_config.d/container.conf <<'EOF'
-PermitRootLogin prohibit-password
-AuthorizedKeysFile /root/.ssh-authorized/authorized_keys
-UsePrivilegeSeparation no
-StrictModes no
-EOF
 
 # Configure Nix: enable flakes, disable build users (single-user container)
 RUN mkdir -p /root/.config/nix \
@@ -53,11 +38,6 @@ RUN chsh -s /bin/zsh root
 # Ensure Nix is on PATH for non-login shells (oc exec)
 RUN echo '[ -f /root/.nix-profile/etc/profile.d/nix.sh ] && . /root/.nix-profile/etc/profile.d/nix.sh' >> /root/.bashrc \
     && echo '[ -f /root/.nix-profile/etc/profile.d/nix.sh ] && . /root/.nix-profile/etc/profile.d/nix.sh' >> /root/.zshrc
-
-# Pre-seed SSH known hosts (GitHub, GitLab)
-# Actual SSH keys are mounted as K8s secrets at runtime.
-RUN mkdir -p -m 0700 /root/.ssh \
-    && ssh-keyscan github.com gitlab.com >> /root/.ssh/known_hosts 2>/dev/null
 
 # Import pre-built Nix closures (HM config + devShell).
 # The closure.nar is bind-mounted from the build context (built by CI),
