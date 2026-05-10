@@ -1,0 +1,145 @@
+# TorchedDevcontainer -- OpenShift deployment template.
+#
+# Replace <username> with your OpenShift username.
+# Container image: quay.io/rh-ee-hgudmund/torched-devcontainer
+#
+# Prerequisites (create these in your namespace first):
+#   - Secret:  <username>-git-ssh-key    (ssh-privatekey, ssh-publickey, known_hosts)
+#   - Secret:  <username>-gcloud-config  (application_default_credentials.json)
+#   - PVC:     pytorch-ibmc-storage-<username>
+#   - Secret:  <username>-pull-secret    (registry pull credentials)
+#
+# Deploy:
+#   oc apply -f deployment.yml
+#   oc scale deployment <username>-dev --replicas=1
+#
+# Connect:
+#   oc exec -it deployment/<username>-dev -- bash
+#
+# First-time setup inside the pod:
+#   nix flake init -t github:hinriksnaer/torched-devcontainer
+#   vim settings.nix   # set git name/email
+#   nix run home-manager/master -- switch --flake .#default
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: <username>-dev
+  namespace: <username>
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: <username>-dev
+  template:
+    metadata:
+      labels:
+        app: <username>-dev
+    spec:
+      volumes:
+        # SSH keys for git authentication (mounted from K8s secret)
+        - name: ssh-key
+          secret:
+            secretName: <username>-git-ssh-key
+            items:
+              - key: ssh-privatekey
+                path: id_ed25519
+              - key: ssh-publickey
+                path: id_ed25519.pub
+              - key: known_hosts
+                path: known_hosts
+            defaultMode: 0600
+
+        # Google Cloud credentials for Vertex AI authentication
+        - name: gcloud-config
+          secret:
+            secretName: <username>-gcloud-config
+            defaultMode: 0600
+
+        # Persistent storage for /root (survives pod restarts)
+        - name: home-data
+          persistentVolumeClaim:
+            claimName: pytorch-ibmc-storage-<username>
+
+        # Shared memory for PyTorch DataLoader workers
+        - name: dshm
+          emptyDir:
+            medium: Memory
+
+      initContainers:
+        # Copy base image /root to PVC on first boot
+        - name: init-home
+          image: 'quay.io/rh-ee-hgudmund/torched-devcontainer:latest'
+          command:
+            - /bin/bash
+            - '-c'
+            - |
+              if [ ! -f /mnt/data/.bashrc ]; then
+                echo "First boot -- initializing persistent home..."
+                cp -a /root/. /mnt/data/
+              fi
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: home-data
+              mountPath: /mnt/data
+
+      containers:
+        - name: dev
+          image: 'quay.io/rh-ee-hgudmund/torched-devcontainer:latest'
+          imagePullPolicy: Always
+          stdin: true
+          tty: true
+          command:
+            - /bin/bash
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          resources:
+            limits:
+              cpu: '16'
+              memory: 64Gi
+              nvidia.com/mig-2g.35gb: '1'
+            requests:
+              cpu: '16'
+              memory: 64Gi
+              nvidia.com/mig-2g.35gb: '1'
+          volumeMounts:
+            # Persistent home directory
+            - name: home-data
+              mountPath: /root
+            # SSH keys (read-only, from K8s secret)
+            - name: ssh-key
+              mountPath: /root/.ssh
+              readOnly: true
+            # Google Cloud credentials (read-only, from K8s secret)
+            - name: gcloud-config
+              mountPath: /root/.config/gcloud
+              readOnly: true
+            # Shared memory for DataLoader
+            - name: dshm
+              mountPath: /dev/shm
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+      imagePullSecrets:
+        - name: <username>-pull-secret
+      schedulerName: default-scheduler
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
