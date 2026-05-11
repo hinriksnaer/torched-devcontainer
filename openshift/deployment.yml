@@ -130,7 +130,7 @@ spec:
                   echo ":: initializing settings from template..."
                   mkdir -p ~/workspace/settings
                   cd ~/workspace/settings
-                  nix flake init -t github:hinriksnaer/torched-devcontainer
+                  nix flake init -t github:hinriksnaer/torched-devcontainer --refresh
                 fi
               fi
 
