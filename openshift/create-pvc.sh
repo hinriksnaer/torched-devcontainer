@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Create persistent volume claims for a user's dev environment.
-# Uses block storage with WaitForFirstConsumer binding so PVs
-# provision on the same node as the GPU pod.
+# Uses NFS (nfs-rwx) for shared, persistent storage backed by the
+# cluster's NVMe-backed NFS server.
 # Usage: ./create-pvc.sh <username>
 
 set -euo pipefail
@@ -17,8 +17,8 @@ metadata:
   name: nix-store-${USERNAME}
   namespace: ${USERNAME}
 spec:
-  accessModes: [ReadWriteOnce]
-  storageClassName: ibmc-vpc-block-metro-retain-10iops-tier
+  accessModes: [ReadWriteMany]
+  storageClassName: nfs-rwx
   resources:
     requests:
       storage: 50Gi
@@ -29,11 +29,11 @@ metadata:
   name: home-${USERNAME}
   namespace: ${USERNAME}
 spec:
-  accessModes: [ReadWriteOnce]
-  storageClassName: ibmc-vpc-block-metro-retain-10iops-tier
+  accessModes: [ReadWriteMany]
+  storageClassName: nfs-rwx
   resources:
     requests:
       storage: 100Gi
 EOF
 
-echo "PVCs created (WaitForFirstConsumer -- will provision on GPU node when pod starts)."
+echo "PVCs created (NFS -- ReadWriteMany, backed by cluster NFS server)."

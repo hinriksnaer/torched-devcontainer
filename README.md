@@ -12,7 +12,7 @@ and a nixtorch devShell for CUDA/PyTorch development.
 
 ```bash
 cd openshift
-./create-pvc.sh <username>    # one-time: creates block storage PVCs
+./create-pvc.sh <username>    # one-time: creates NFS storage PVCs
 ./deploy.sh <username>        # applies deployment
 oc scale deployment <username>-dev -n <username> --replicas=1
 ```
