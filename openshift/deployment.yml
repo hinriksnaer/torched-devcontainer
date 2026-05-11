@@ -101,8 +101,11 @@ spec:
             - |
               # Ensure nix config exists on persistent /root
               mkdir -p /root/.config/nix
-              [ ! -f /root/.config/nix/nix.conf ] && \
-                printf 'experimental-features = nix-command flakes\nbuild-users-group =\n' > /root/.config/nix/nix.conf
+              if [ ! -f /root/.config/nix/nix.conf ]; then
+                printf 'experimental-features = nix-command flakes\nbuild-users-group =\nbuild-dir = /tmp/nix-builds\n' > /root/.config/nix/nix.conf
+              elif ! grep -q 'build-dir' /root/.config/nix/nix.conf; then
+                printf 'build-dir = /tmp/nix-builds\n' >> /root/.config/nix/nix.conf
+              fi
 
               . /root/.nix-profile/etc/profile.d/nix.sh 2>/dev/null || true
 
