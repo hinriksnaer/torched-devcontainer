@@ -43,11 +43,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1778466855,
-        "narHash": "sha256-9HkJCL3610XQH62dZ4vZBdPdpctaIozzV421lMgyxCg=",
+        "lastModified": 1778467805,
+        "narHash": "sha256-oKnq9xPQW2z1KLkc/0OuI4AEiq3Rzw0zwVl0XYuKxVQ=",
         "owner": "hinriksnaer",
         "repo": "nixtorch",
-        "rev": "995b5cff67331b4f69d88b6083534b7b129e55d7",
+        "rev": "e527b25211a58a9dddea07b754f2340867712cc2",
         "type": "github"
       },
       "original": {
